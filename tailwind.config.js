@@ -10,7 +10,7 @@ module.exports = {
         'text-dark': '#463F3A',
         'text-light': '#8A817C',
         'primary': '#BCB8B1',
-        'secondary': '#E0AFA0',
+        'accent': '#E0AFA0',
       },
       fontFamily: {
         'lora': ['Lora_600SemiBold'],

@@ -1,5 +1,5 @@
-import { View, Text, TouchableOpacityProps, TouchableOpacity } from 'react-native'
-import React from 'react'
+import React from 'react';
+import { Text, TouchableOpacity, TouchableOpacityProps } from 'react-native';
 
 interface CustomButtonProps extends TouchableOpacityProps {
     title: string;

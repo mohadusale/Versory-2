@@ -13,7 +13,7 @@ interface FormFieldProps extends TextInputProps {
 const FormField = ({ title, value, placeholder, handleChangeText, otherStyles, ...props }: FormFieldProps) => {
     const [showPassword, setShowPassword] = useState(false);
 
-    const isPassword = title.toLowerCase() === 'contraseña' || title.toLowerCase() === 'password';
+    const isPassword = title.toLowerCase() === 'contraseña' || title.toLowerCase() === 'password' || title.toLowerCase() === 'confirmar contraseña' || title.toLowerCase() === 'confirm password';
     
     return (
         <View className={`space-y-2 ${otherStyles}`}>
@@ -21,7 +21,7 @@ const FormField = ({ title, value, placeholder, handleChangeText, otherStyles, .
                 {title}
             </Text>
 
-            <View className='w-full h-14 px-4 bg-background border-2 border-primary rounded-xl focus:border-accent flex-row items-center'>
+            <View className='w-full py-3.5 px-4 bg-background border-2 border-primary rounded-xl focus:border-accent flex-row items-center'>
                 <TextInput 
                     className='flex-1 text-text-dark text-base font-montserrat'
                     value={value}
