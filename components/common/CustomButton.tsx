@@ -7,15 +7,25 @@ interface CustomButtonProps extends TouchableOpacityProps {
     containerStyles?: string;
     textStyles?: string;
     isLoading?: boolean;
+    disabled?: boolean;
 }
 
-const CustomButton = ({ title, handlePress, containerStyles, textStyles, isLoading, ...props}: CustomButtonProps) => {
+const CustomButton = ({ title, handlePress, containerStyles, textStyles, isLoading, disabled, ...props}: CustomButtonProps) => {
     return (
         <TouchableOpacity
             onPress={handlePress}
             activeOpacity={0.7}
-            className={`bg-accent rounded-xl min-h-[56px] justify-center items-center ${containerStyles} ${isLoading ? 'opacity-50' : ''}`}
-            disabled={isLoading}
+            className={`
+                bg-accent 
+                rounded-xl 
+                min-h-[56px] 
+                justify-center 
+                items-center 
+                ${containerStyles} 
+                ${disabled || isLoading ? 'bg-primary' : 'bg-accent'}
+                ${isLoading ? 'opacity-50' : ''
+            }`}
+            disabled={disabled || isLoading}
             {...props}
         >
             <Text className={`text-text-dark font-montserrat-bold text-lg ${textStyles}`}>

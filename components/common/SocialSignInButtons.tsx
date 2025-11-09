@@ -1,6 +1,5 @@
-// components/common/SocialSignInButtons.tsx
-import { AppleButton } from '@invertase/react-native-apple-authentication';
-import { GoogleSigninButton } from '@react-native-google-signin/google-signin';
+//import { GoogleSigninButton } from '@react-native-google-signin/google-signin';
+//import * as AppleAuthentication from 'expo-apple-authentication';
 import React from 'react';
 import { Platform, Text, View } from 'react-native';
 
@@ -23,24 +22,24 @@ const SocialSignInButtons = ({ onGooglePress, onApplePress, isSubmitting }: Soci
             </View>
 
             {/* Botón de Google */}
-            <GoogleSigninButton
+            {/* <GoogleSigninButton
                 style={{ width: '100%', height: 56 }}
                 size={GoogleSigninButton.Size.Wide}
-                color={GoogleSigninButton.Color.Dark} // El botón estándar "Sign in with Google"
+                color={GoogleSigninButton.Color.Light} // El botón estándar "Sign in with Google"
                 onPress={onGooglePress}
                 disabled={isSubmitting}
             />
 
             {/* Botón de Apple (SOLO se muestra en dispositivos iOS) */}
-            {Platform.OS === 'ios' && (
-                <AppleButton
-                buttonType={AppleButton.Type.SIGN_IN}
-                buttonStyle={AppleButton.Style.BLACK}
-                cornerRadius={8}
-                style={{ width: '100%', height: 56 }}
-                onPress={onApplePress}
+            {/* {Platform.OS === 'ios' && (
+                <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                    cornerRadius={8}
+                    style={{ width: '100%', height: 56 }}
+                    onPress={onApplePress}
                 />
-            )}
+            )} */}
         </View>
     );
 }

@@ -21,7 +21,7 @@ const FormField = ({ title, value, placeholder, handleChangeText, otherStyles, .
                 {title}
             </Text>
 
-            <View className='w-full py-3.5 px-4 bg-background border-2 border-primary rounded-xl focus:border-accent flex-row items-center'>
+            <View className='w-full py-3 px-4 bg-background border-2 border-primary rounded-xl focus:border-accent flex-row items-center'>
                 <TextInput 
                     className='flex-1 text-text-dark text-base font-montserrat'
                     value={value}
@@ -29,6 +29,7 @@ const FormField = ({ title, value, placeholder, handleChangeText, otherStyles, .
                     placeholderTextColor="#8A817C"
                     onChangeText={handleChangeText}
                     secureTextEntry={isPassword && !showPassword}
+                    style={{ paddingVertical: 0 }}
                     {...props}
                 />
 

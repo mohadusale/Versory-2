@@ -1,6 +1,6 @@
 import CustomButton from '@/components/common/CustomButton';
 import FormField from '@/components/common/FormField';
-import SocialSignInButtons from '@/components/common/SocialSignInButtons';
+// import SocialSignInButtons from '@/components/common/SocialSignInButtons';
 import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Image, Text, View } from 'react-native';
@@ -8,7 +8,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const loginImage = require('../assets/images/library.jpg');
-const logo = require('../assets/images/logoSinTitle.png');
+const logo = require('../assets/images/logoSinTitle2.png');
 
 const Login = () => {
     const [form, setForm] = useState({
@@ -16,6 +16,8 @@ const Login = () => {
         password: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const isLoginValid = form.email.trim() !== '' && form.password.trim() !== '';
 
     const submit = () => {
         // Aquí irá la lógica de login (hablar con Django)
@@ -53,12 +55,13 @@ const Login = () => {
     }
 
     return (
-        <SafeAreaView className='bg-background h-full'>
+        <SafeAreaView className='bg-background flex-1'>
             <KeyboardAwareScrollView
                 resetScrollToCoords={{ x: 0, y: 0 }}
                 contentContainerStyle={{ flexGrow: 1 }}
+                enableOnAndroid={true}
             >
-                <View className='w-full justify-center min-h-[90vh] px-6 py-4'>
+                <View className='w-full justify-center flex-1 px-6 py-4'>
                     {/* Logo Versory */}
                     <Image
                         source={logo}
@@ -86,11 +89,21 @@ const Login = () => {
                         otherStyles='mt-4'
                     />
 
+                    {/* He olvidado la contraseña */}
+                    <View className='item-end mt-4'>
+                        <Link href={"/forgot-password"}>
+                            <Text className='text-text-light font-montserrat-medium text-xs'>
+                                ¿Has olvidado tu contraseña?
+                            </Text>
+                        </Link>
+                    </View>
+
                     <CustomButton
                         title="Iniciar Sesión"
                         handlePress={submit}
                         containerStyles='mt-7'
                         isLoading={isSubmitting}
+                        disabled={!isLoginValid}
                     />
 
                     {/* Botones Social Login */}

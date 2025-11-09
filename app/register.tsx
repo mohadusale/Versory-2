@@ -6,7 +6,7 @@ import { Alert, Image, Text, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const logo = require('../assets/images/logoSinTitle.png');
+const logo = require('../assets/images/logoSinTitle2.png');
 
 const Register = () => {
     const [form, setForm] = useState({
@@ -17,6 +17,13 @@ const Register = () => {
         confirmPassword: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const isRegisterValid = 
+        form.name.trim() !== '' &&
+        form.username.trim() !== '' &&
+        form.email.trim() !== '' &&
+        form.password.trim() !== '' &&
+        form.confirmPassword.trim() !== '';
 
     const submit = () => {
         // Lógica de registro
@@ -44,12 +51,13 @@ const Register = () => {
     }
 
     return (
-        <SafeAreaView className='bg-background h-full'>
+        <SafeAreaView className='bg-background flex-1'>
             <KeyboardAwareScrollView
                 resetScrollToCoords={{ x: 0, y: 0 }}
                 contentContainerStyle={{ flexGrow: 1 }}
+                enableOnAndroid={true}
             >
-                <View className='w-full justify-center min-h-[90vh] px-6 py-4'>
+                <View className='w-full justify-center px-6 py-4'>
                     <Image
                         source={logo}
                         className='w-48 h-20 self-center'
@@ -74,7 +82,6 @@ const Register = () => {
                         value={form.username}
                         handleChangeText={(e) => setForm({ ...form, username: e })}
                         otherStyles='mt-4'
-                        placeholder='Ej: ana_reads'
                         autoCapitalize='none'
                     />
                     <Text className='text-xs text-text-light font-montserrat mt-2 ml-1'>
@@ -85,7 +92,7 @@ const Register = () => {
                         title="Email"
                         value={form.email}
                         handleChangeText={(e) => setForm({ ...form, email: e })}
-                        otherStyles='mt-4'
+                        otherStyles='mt-2'
                         keyboardType='email-address'
                         placeholder='tuemail@ejemplo.com'
                     />
@@ -101,26 +108,27 @@ const Register = () => {
                         title="Confirmar Contraseña"
                         value={form.confirmPassword}
                         handleChangeText={(e) => setForm({ ...form, confirmPassword: e })}
-                        otherStyles='mt-4'
+                        otherStyles='mt-4 pb-5'
                     />
-
-                    <CustomButton
-                        title="Registrarse"
-                        handlePress={submit}
-                        containerStyles="mt-7"
-                        isLoading={isSubmitting}
-                    />
-
-                    <View className="justify-center pt-5 flex-row gap-2">
-                        <Text className="text-text-light font-montserrat">
-                            ¿Ya tienes una cuenta?
-                        </Text>
-                        <Link href="/login" className="font-montserrat-medium text-accent">
-                        Inicia Sesión
-                        </Link>
-                    </View>
                 </View>
             </KeyboardAwareScrollView>
+            <View className='bg-background px-6 pt-4 pb-6 border-t border-primary'>
+                <CustomButton
+                    title="Registrarse"
+                    handlePress={submit}
+                    isLoading={isSubmitting}
+                    disabled={!isRegisterValid}
+                />
+
+                <View className="justify-center pt-5 flex-row gap-2">
+                    <Text className="text-text-light font-montserrat">
+                        ¿Ya tienes una cuenta?
+                    </Text>
+                    <Link href="/login" className="font-montserrat-medium text-accent">
+                    Inicia Sesión
+                    </Link>
+                </View>
+            </View>
         </SafeAreaView>
     )
 }
