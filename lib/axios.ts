@@ -2,7 +2,7 @@ import { useAuthStore } from '@/store/authStore';
 import axios from 'axios';
 import { refreshAccessToken } from './authService';
 
-const API_URL = 'http://192.168.1.162:8000/api';
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 const api = axios.create({
     baseURL: API_URL,

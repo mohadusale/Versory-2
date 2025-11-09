@@ -1,7 +1,7 @@
 import { useAuthStore } from '@/store/authStore';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.1.162:8000/api';
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 // Cliente axios básico sin interceptores
 const baseApi = axios.create({

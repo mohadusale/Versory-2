@@ -1,22 +1,32 @@
+import { User } from '@/types/user';
 import api from './axios';
 
 // --- LOGIN ---
-export const apiLogin = async (username: string, password: string) => {
+export const apiLogin = async (
+    email: string, 
+    password: string
+): Promise<{ token: string, refresh: string, user: User}> => {
     const response = await api.post('/token/', {
-        username: username,
+        email: email,
         password: password,
     });
-    return { token: response.data.access, refresh: response.data.refresh };
+
+    const { access, refresh, ...user } = response.data as { access: string, refresh: string } & User;
+    return { token: access, refresh, user };
 };
 
 // --- REGISTRO ---
-export const apiRegister = async (username: string, email: string, password: string) => {
+export const apiRegister = async (
+    username: string, 
+    email: string, 
+    password: string
+): Promise<{ token: string, refresh: string, user: User }> => {
     const response = await api.post('/register/', {
         username: username,
         email: email,
         password: password,
     });
 
-    const { access, refresh, ...user } = response.data;
+    const { access, refresh, ...user } = response.data as { access: string, refresh: string } & User;
     return { token: access, refresh, user };
 };

@@ -7,6 +7,8 @@ const decodeJWT = (token: string) => {
     try {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        
+        // Usar atob nativo que está disponible en React Native
         const jsonPayload = decodeURIComponent(
             atob(base64)
                 .split('')

@@ -1,3 +1,4 @@
+import { User } from '@/types/user';
 import * as SecureStore from 'expo-secure-store';
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -5,11 +6,11 @@ import { createJSONStorage, persist } from "zustand/middleware";
 interface AuthState {
     token: string | null;
     refreshToken: string | null;
-    user: { name: string, username: string, email: string } | null;
+    user: User | null;
     isAuthenticated: boolean;
 
     setTokens: (accessToken: string, refreshToken: string) => void;
-    setUser: (user: any) => void; //Por ahora "any", luego lo tiparé mejor
+    setUser: (user: User) => void; 
     logout: () => void;
 }
 
@@ -41,7 +42,7 @@ export const useAuthStore = create<AuthState>()(
             },
 
             // Acción para guardar el usuario
-            setUser: (user: any) => {
+            setUser: (user: User) => {
                 set({ user });
             },
 

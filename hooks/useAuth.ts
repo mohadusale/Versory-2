@@ -1,9 +1,8 @@
-import { apiRegister } from "@/lib/api";
+import { apiLogin, apiRegister } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert } from 'react-native';
-import api from '../lib/axios';
 
 
 export const useAuth = () => {
@@ -15,15 +14,10 @@ export const useAuth = () => {
         setIsLoading(true);
         try {
             // 1. Llama a la API
-            const response = await api.post('/token/', {
-                email: email,
-                password: password,
-            });
-
-            const { access, refresh, ...user } = response.data;
+            const { token, refresh, user } = await apiLogin(email, password);
 
             // 2. Guarda en el store de Zustand
-            setTokens(access, refresh);
+            setTokens(token, refresh);
             setUser(user);
 
             Alert.alert('Éxito', `¡Bienvenido de nuevo, ${user.username}!`);
