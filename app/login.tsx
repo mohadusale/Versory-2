@@ -1,7 +1,7 @@
 import CustomButton from '@/components/common/CustomButton';
 import FormField from '@/components/common/FormField';
-// import SocialSignInButtons from '@/components/common/SocialSignInButtons';
-import { Link, router } from 'expo-router';
+import { useAuth } from '@/hooks/useAuth';
+import { Link } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Image, Text, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -15,43 +15,18 @@ const Login = () => {
         email: '',
         password: ''
     });
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { login, isLoading } = useAuth();
 
     const isLoginValid = form.email.trim() !== '' && form.password.trim() !== '';
 
-    const submit = () => {
+    const submit = async () => {
         // Aquí irá la lógica de login (hablar con Django)
-        if (!form.email || !form.password) {
+        if (!isLoginValid) {
             Alert.alert('Error', 'Por favor, rellena todos los campos');
             return;
         }
 
-        setIsSubmitting(true);
-
-        setTimeout(() => {
-            setIsSubmitting(false);
-            router.replace('/library')
-        }, 2000);
-    }
-
-    const handleGoogleLogin = async () => {
-        setIsSubmitting(true);
-        Alert.alert('Google', 'Iniciando sesión con Google...');
-        // Aquí iría la lógica de GoogleSignin.signIn() y la llamada a Django
-        setTimeout(() => {
-            setIsSubmitting(false);
-            router.replace('/library');
-        }, 1500);
-    }
-
-    const handleAppleLogin = async () => {
-        setIsSubmitting(true);
-        Alert.alert('Apple', 'Iniciando sesión con Apple...');
-        // Aquí iría la lógica de GoogleSignin.signIn() y la llamada a Django
-        setTimeout(() => {
-            setIsSubmitting(false);
-            router.replace('/library');
-        }, 1500);
+        await login(form.email, form.password);
     }
 
     return (
@@ -102,16 +77,9 @@ const Login = () => {
                         title="Iniciar Sesión"
                         handlePress={submit}
                         containerStyles='mt-7'
-                        isLoading={isSubmitting}
-                        disabled={!isLoginValid}
+                        isLoading={isLoading}
+                        disabled={!isLoginValid || isLoading}
                     />
-
-                    {/* Botones Social Login */}
-                    {/* <SocialSignInButtons
-                        isSubmitting={isSubmitting}
-                        onGooglePress={handleGoogleLogin}
-                        onApplePress={handleAppleLogin}
-                    /> */}
 
                     {/* Redirigir a Registrarse */}
                     <View className='justify-center pt-5 flex-row gap-2'>

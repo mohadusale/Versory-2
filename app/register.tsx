@@ -1,5 +1,6 @@
 import CustomButton from '@/components/common/CustomButton';
 import FormField from '@/components/common/FormField';
+import { useAuth } from '@/hooks/useAuth';
 import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Image, Text, View } from 'react-native';
@@ -10,24 +11,22 @@ const logo = require('../assets/images/logoSinTitle2.png');
 
 const Register = () => {
     const [form, setForm] = useState({
-        name: '',
         username: '',
         email: '',
         password: '',
         confirmPassword: ''
     });
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { register, isLoading } = useAuth();
 
     const isRegisterValid = 
-        form.name.trim() !== '' &&
         form.username.trim() !== '' &&
         form.email.trim() !== '' &&
         form.password.trim() !== '' &&
         form.confirmPassword.trim() !== '';
 
-    const submit = () => {
+    const submit = async () => {
         // Lógica de registro
-        if (!form.name || !form.email || !form.username || !form.password || !form.confirmPassword) {
+        if (!isRegisterValid) {
             Alert.alert('Error', 'Por favor, rellena todos los campos');
             return;
         }
@@ -39,15 +38,7 @@ const Register = () => {
 
         // Aquí iría la lógica de validación de username
 
-        setIsSubmitting(true);
-
-        // Simulación de registro (aquí se llamaría a Django)
-        console.log("Datos del formulario:", form);
-        setTimeout(() => {
-            setIsSubmitting(false);
-            // Si el registro es exitoso, redirige a los tabs
-            router.replace('/library');
-        }, 2000)
+        await register(form.username, form.email, form.password);
     }
 
     return (
@@ -70,29 +61,19 @@ const Register = () => {
 
                     {/* Formulario */}
                     <FormField
-                        title="Nombre"
-                        value={form.name}
-                        handleChangeText={(e) => setForm({ ...form, name: e })}
-                        otherStyles='mt-7'
-                        placeholder='¿Cómo te llamas?'
-                    />
-
-                    <FormField
                         title="Username"
                         value={form.username}
                         handleChangeText={(e) => setForm({ ...form, username: e })}
-                        otherStyles='mt-4'
+                        otherStyles='mt-10'
                         autoCapitalize='none'
+                        placeholder='Así te verán otros lectores. Debe ser único.'
                     />
-                    <Text className='text-xs text-text-light font-montserrat mt-2 ml-1'>
-                        Así te verán otros lectores. Debe ser único.
-                    </Text>
 
                     <FormField
                         title="Email"
                         value={form.email}
                         handleChangeText={(e) => setForm({ ...form, email: e })}
-                        otherStyles='mt-2'
+                        otherStyles='mt-4'
                         keyboardType='email-address'
                         placeholder='tuemail@ejemplo.com'
                     />
@@ -116,8 +97,8 @@ const Register = () => {
                 <CustomButton
                     title="Registrarse"
                     handlePress={submit}
-                    isLoading={isSubmitting}
-                    disabled={!isRegisterValid}
+                    isLoading={isLoading}
+                    disabled={!isRegisterValid || isLoading}
                 />
 
                 <View className="justify-center pt-5 flex-row gap-2">

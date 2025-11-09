@@ -10,7 +10,7 @@ export const apiLogin = async (username: string, password: string) => {
 };
 
 // --- REGISTRO ---
-export const apiRegister = async (name: string, username: string, email: string, password: string) => {
+export const apiRegister = async (username: string, email: string, password: string) => {
     const response = await api.post('/register/', {
         username: username,
         email: email,

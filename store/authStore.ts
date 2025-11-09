@@ -1,13 +1,14 @@
+import * as SecureStore from 'expo-secure-store';
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import * as SecureStore from 'expo-secure-store';
 
 interface AuthState {
     token: string | null;
+    refreshToken: string | null;
     user: { name: string, username: string, email: string } | null;
     isAuthenticated: boolean;
 
-    setToken: (token: string) => void;
+    setTokens: (accessToken: string, refreshToken: string) => void;
     setUser: (user: any) => void; //Por ahora "any", luego lo tiparé mejor
     logout: () => void;
 }
@@ -30,12 +31,13 @@ export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
             token: null,
+            refreshToken: null,
             user: null,
             isAuthenticated: false,
 
-            // Acción para guardar el token
-            setToken: (token: string) => {
-                set({ token, isAuthenticated: true });
+            // Acción para guardar ambos tokens
+            setTokens: (accessToken: string, refreshToken: string) => {
+                set({ token: accessToken, refreshToken, isAuthenticated: true });
             },
 
             // Acción para guardar el usuario
@@ -45,7 +47,7 @@ export const useAuthStore = create<AuthState>()(
 
             // Acción de logout
             logout: () => {
-                set({ token: null, user: null, isAuthenticated: false });
+                set({ token: null, refreshToken: null, user: null, isAuthenticated: false });
             },
         }),
         {
