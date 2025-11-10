@@ -1,4 +1,4 @@
-import { User } from '@/types/user';
+import { User } from '@/types/types';
 import * as SecureStore from 'expo-secure-store';
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";

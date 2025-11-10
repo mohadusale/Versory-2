@@ -2,14 +2,27 @@ import { useTokenRefresh } from '@/lib/tokenManager';
 import { useAuthStore } from '@/store/authStore';
 import { Lora_600SemiBold } from '@expo-google-fonts/lora';
 import { Montserrat_400Regular, Montserrat_500Medium, Montserrat_700Bold } from '@expo-google-fonts/montserrat';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import "./global.css";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  // Crear una instancia de QueryClient (solo una vez)
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 1000 * 60 * 5, // Los datos se consideran frescos por 5 minutos
+        gcTime: 1000 * 60 * 10, // Cache se mantiene por 10 minutos (antes era 'cacheTime')
+        retry: 1,
+        refetchOnWindowFocus: true,
+      },
+    },
+  }));
+
   const [fontsLoaded, fontError] = useFonts({
     Lora_600SemiBold,
     Montserrat_400Regular,
@@ -29,7 +42,7 @@ export default function RootLayout() {
 
     if (!fontsLoaded) return;
 
-    const inAppArea = segments[0] === '(tabs)';
+    const inAppArea = segments[0] === '(tabs)' || segments[0] === '(stack)';
 
     if (user) {
       if (!inAppArea) {
@@ -50,10 +63,13 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }} >
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
-    </Stack>
+    <QueryClientProvider client={queryClient}>
+      <Stack screenOptions={{ headerShown: false }} >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="register" />
+        <Stack.Screen name="(stack)"/>
+      </Stack>
+    </QueryClientProvider>
   );
 }

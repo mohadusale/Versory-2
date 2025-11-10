@@ -17,6 +17,7 @@ export const refreshAccessToken = async (): Promise<boolean> => {
     
     if (!refreshToken) {
         logout();
+        console.log("Refresh caducado");
         return false;
     }
     
