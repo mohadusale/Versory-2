@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { FlatList, Keyboard, RefreshControl, ScrollView, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import BookGridItem from './BookGridItem';
-import FilterModal, { FilterOptions } from './FilterModal';
+import FilterModal, { FilterSectionConfig } from './FilterModal';
 
 interface BookListSceneProps {
     books: UserBook[];
@@ -16,10 +16,10 @@ interface BookListSceneProps {
 const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefresh, listKey }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilterModal, setShowFilterModal] = useState(false);
-    const [filters, setFilters] = useState<FilterOptions>({
-        selectedGenres: [],
-        selectedAuthors: [],
-        selectedYear: null,
+    const [filters, setFilters] = useState<Record<string, any>>({
+        genres: [],
+        authors: [],
+        year: null,
     });
 
     // Extraer géneros, autores y años únicos de los libros
@@ -72,29 +72,29 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
         }
 
         // Filtrar por géneros
-        if (filters.selectedGenres.length > 0) {
+        if (filters.genres?.length > 0) {
             result = result.filter(book =>
                 book.book.genres.some(genre => 
-                    filters.selectedGenres.includes(genre.name)
+                    filters.genres.includes(genre.name)
                 )
             );
         }
 
         // Filtrar por autores
-        if (filters.selectedAuthors.length > 0) {
+        if (filters.authors?.length > 0) {
             result = result.filter(book =>
                 book.book.authors.some(author => 
-                    filters.selectedAuthors.includes(author.name)
+                    filters.authors.includes(author.name)
                 )
             );
         }
 
         // Filtrar por año
-        if (filters.selectedYear) {
+        if (filters.year) {
             result = result.filter(book => {
                 if (!book.book.published_date) return false;
                 const year = new Date(book.book.published_date).getFullYear();
-                return year === filters.selectedYear;
+                return year === filters.year;
             });
         }
 
@@ -102,10 +102,52 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
     }, [books, searchQuery, filters]);
 
     // Contar filtros activos
-    const activeFiltersCount = 
-        filters.selectedGenres.length + 
-        filters.selectedAuthors.length + 
-        (filters.selectedYear ? 1 : 0);
+    const activeFiltersCount = useMemo(() => {
+        return Object.values(filters).reduce((count, value) => {
+            if (Array.isArray(value) && value.length > 0) {
+                return count + value.length;
+            }
+            if (value !== null && !Array.isArray(value)) {
+                return count + 1;
+            }
+            return count;
+        }, 0);
+    }, [filters]);
+
+    // Prop de configuración para el modal genérico
+    const sectionsConfig = useMemo((): FilterSectionConfig[] => {
+        return [
+            // Año
+            {
+                id: 'year',
+                title: 'Año de publicación',
+                type: 'single-horizontal',
+                data: [null, ...availableYears],
+            },
+            {
+                id: 'genres',
+                title: 'Géneros',
+                type: 'multi-list',
+                data: availableGenres,
+                searchable: true,
+                placeholder: 'Buscar género...',
+                getKey: (genre: Genre) => genre.id.toString(),
+                getLabel: (genre: Genre) => genre.name,
+                getValue: (genre: Genre) => genre.name,
+            },
+            {
+                id: 'authors',
+                title: 'Autores',
+                type: 'multi-list',
+                data: availableAuthors,
+                searchable: true,
+                placeholder: 'Buscar autor...',
+                getKey: (author: Author) => author.id.toString(),
+                getLabel: (author: Author) => author.name,
+                getValue: (author: Author) => author.name,
+            }
+        ];
+    }, [availableGenres, availableAuthors, availableYears]);
 
     // Si no hay libros en esta sección, mostrar un mensaje
     if (books.length === 0) {
@@ -170,7 +212,7 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                 {filteredBooks.length === 0 ? (
                     <View className="flex-1 justify-center items-center">
                         <Text className="font-montserrat text-text-light">
-                            No se encontraron libros con "{searchQuery}"
+                            No se encontraron libros con esos filtros
                         </Text>
                     </View>
                 ) : (
@@ -202,9 +244,7 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                     onClose={() => setShowFilterModal(false)}
                     filters={filters}
                     onApplyFilters={setFilters}
-                    availableGenres={availableGenres}
-                    availableAuthors={availableAuthors}
-                    availableYears={availableYears}
+                    sectionsConfig={sectionsConfig}
                 />
             </View>
         </TouchableWithoutFeedback>
