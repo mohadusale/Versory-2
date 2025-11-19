@@ -1,9 +1,9 @@
 import { apiLogin, apiRegister } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
+import { ErrorCode, handleError, showError } from "@/utils/errorHandler";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert } from 'react-native';
-
 
 export const useAuth = () => {
     const { setTokens, setUser, logout: storeLogout } = useAuthStore();
@@ -22,12 +22,18 @@ export const useAuth = () => {
 
             Alert.alert('Éxito', `¡Bienvenido de nuevo, ${user.username}!`);
             router.replace('/(tabs)');
-        } catch (error: any) {
-            let errorMessage = 'Algo salió mal al iniciar sesión.';
-            if (error.response?.data?.detail) {
-                errorMessage = error.response.data.detail;
+        } catch (error: unknown) {
+            const appError = handleError(error);
+            
+            // Personalizar mensaje para credenciales inválidas
+            if (appError.code === ErrorCode.UNAUTHORIZED) {
+                showError(
+                    { ...appError, message: 'Email o contraseña incorrectos' },
+                    { title: 'Error de Login' }
+                );
+            } else {
+                showError(error, { title: 'Error de Login' });
             }
-            Alert.alert('Error de Login', errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -43,12 +49,8 @@ export const useAuth = () => {
 
             Alert.alert('Éxito', `¡Bienvenido a Versory, ${user.username}!`);
             router.replace('/(tabs)');
-        } catch (error: any) {
-            let errorMessage = 'Algo salió mal al registrarte.';
-            if (error.response?.data?.detail) {
-                errorMessage = error.response.data.detail;
-            }
-            Alert.alert('Error de Registro', errorMessage);
+        } catch (error: unknown) {
+            showError(error, { title: 'Error de Registro' });
         } finally {
             setIsLoading(false);
         }

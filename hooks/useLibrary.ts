@@ -1,8 +1,9 @@
+import { ENV } from '@/config/env';
 import api from '@/lib/axios';
 import { UserBook } from '@/types/types';
 import { useQuery } from '@tanstack/react-query';
-import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
+import { useErrorHandler } from './useErrorHandler';
 
 // Función para obtener la biblioteca desde la API
 const fetchLibrary = async (): Promise<UserBook[]> => {
@@ -13,11 +14,22 @@ const fetchLibrary = async (): Promise<UserBook[]> => {
 };
 
 export const useLibrary = () => {
+    // Handler de errores
+    const handleError = useErrorHandler({
+        title: 'Error al cargar biblioteca',
+        showAlert: false, // No mostramos alert automáticamente, lo manejamos en el componente
+    });
+
     // Usar React Query para manejar la petición
     const { data, isLoading, error, refetch } = useQuery({
         queryKey: ['library'],
         queryFn: fetchLibrary,
-        staleTime: 1000 * 60 * 5, // 5 minutos
+        staleTime: ENV.CACHE_STALE_TIME,
+        retry: (failureCount, error) => {
+            // Retry automático para errores de red, máximo 2 veces
+            handleError(error);
+            return failureCount < 2;
+        },
     });
 
     // Los datos pueden ser undefined al inicio, usar array vacío como fallback

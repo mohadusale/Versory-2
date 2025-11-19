@@ -1,3 +1,4 @@
+import { ENV, printConfig } from '@/config/env';
 import { useTokenRefresh } from '@/lib/tokenManager';
 import { useAuthStore } from '@/store/authStore';
 import { Lora_600SemiBold } from '@expo-google-fonts/lora';
@@ -10,13 +11,18 @@ import "./global.css";
 
 SplashScreen.preventAutoHideAsync();
 
+// Imprimir configuración en desarrollo
+if (__DEV__) {
+  printConfig();
+}
+
 export default function RootLayout() {
   // Crear una instancia de QueryClient (solo una vez)
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 1000 * 60 * 5, // Los datos se consideran frescos por 5 minutos
-        gcTime: 1000 * 60 * 10, // Cache se mantiene por 10 minutos (antes era 'cacheTime')
+        staleTime: ENV.CACHE_STALE_TIME,
+        gcTime: ENV.CACHE_GC_TIME,
         retry: 1,
         refetchOnWindowFocus: true,
       },

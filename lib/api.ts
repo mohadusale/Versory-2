@@ -1,32 +1,56 @@
+import { AuthResponse, LoginRequest, RegisterRequest } from '@/types/api';
 import { User } from '@/types/types';
 import api from './axios';
 
-// --- LOGIN ---
+/**
+ * Inicia sesión con email y contraseña
+ * @param email - Email del usuario
+ * @param password - Contraseña del usuario
+ * @returns Token de acceso, refresh token y datos del usuario
+ */
 export const apiLogin = async (
     email: string, 
     password: string
-): Promise<{ token: string, refresh: string, user: User}> => {
-    const response = await api.post('/token/', {
-        email: email,
-        password: password,
-    });
+): Promise<{ token: string; refresh: string; user: User }> => {
+    const requestData: LoginRequest = {
+        email,
+        password,
+    };
 
-    const { access, refresh, ...user } = response.data as { access: string, refresh: string } & User;
-    return { token: access, refresh, user };
+    const response = await api.post<AuthResponse>('/token/', requestData);
+    const { access, refresh, user } = response.data;
+    
+    return { 
+        token: access, 
+        refresh, 
+        user 
+    };
 };
 
-// --- REGISTRO ---
+/**
+ * Registra un nuevo usuario
+ * @param username - Nombre de usuario
+ * @param email - Email del usuario
+ * @param password - Contraseña del usuario
+ * @returns Token de acceso, refresh token y datos del usuario
+ */
 export const apiRegister = async (
     username: string, 
     email: string, 
     password: string
-): Promise<{ token: string, refresh: string, user: User }> => {
-    const response = await api.post('/register/', {
-        username: username,
-        email: email,
-        password: password,
-    });
+): Promise<{ token: string; refresh: string; user: User }> => {
+    const requestData: RegisterRequest = {
+        username,
+        email,
+        password,
+    };
 
-    const { access, refresh, ...user } = response.data as { access: string, refresh: string } & User;
-    return { token: access, refresh, user };
+    const response = await api.post<AuthResponse>('/register/', requestData);
+    const { access, refresh, user } = response.data;
+    
+    return { 
+        token: access, 
+        refresh, 
+        user 
+    };
 };

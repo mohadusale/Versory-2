@@ -1,63 +1,35 @@
+import { ENV } from '@/config/env';
 import { useAuthStore } from '@/store/authStore';
 import { useEffect } from 'react';
 import { refreshAccessToken } from './authService';
+import { isTokenExpiringSoon } from './tokenService';
 
-// Decodificar JWT para obtener expiración
-const decodeJWT = (token: string) => {
-    try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        
-        // Usar atob nativo que está disponible en React Native
-        const jsonPayload = decodeURIComponent(
-            atob(base64)
-                .split('')
-                .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                .join('')
-        );
-        return JSON.parse(jsonPayload);
-    } catch (error) {
-        return null;
-    }
-};
-
-// Verificar si el token está próximo a expirar (5 minutos antes)
-export const isTokenExpiringSoon = (token: string): boolean => {
-    const decoded = decodeJWT(token);
-    if (!decoded || !decoded.exp) return true;
-    
-    const now = Math.floor(Date.now() / 1000);
-    const expirationTime = decoded.exp;
-    const fiveMinutesInSeconds = 5 * 60;
-    
-    return (expirationTime - now) <= fiveMinutesInSeconds;
-};
-
-// Verificar si el token ya expiró
-export const isTokenExpired = (token: string): boolean => {
-    const decoded = decodeJWT(token);
-    if (!decoded || !decoded.exp) return true;
-    
-    const now = Math.floor(Date.now() / 1000);
-    return decoded.exp < now;
-};
-
-// La función refreshAccessToken ahora está en authService.ts
-
-// Hook para manejar refresh automático
+/**
+ * Hook personalizado para manejar el refresh automático del token
+ * Verifica periódicamente si el token está próximo a expirar y lo refresca si es necesario
+ */
 export const useTokenRefresh = () => {
     const { token } = useAuthStore();
     
     useEffect(() => {
-        if (!token) return;
+        if (!token) {
+            console.log('[TokenManager] No token available, skipping auto-refresh');
+            return;
+        }
         
-        // Verificar cada 2 minutos si el token necesita refresh
+        // Verificar periódicamente si el token necesita refresh
         const interval = setInterval(async () => {
             if (isTokenExpiringSoon(token)) {
+                console.log('[TokenManager] Token expiring soon, refreshing...');
                 await refreshAccessToken();
             }
-        }, 2 * 60 * 1000); // 2 minutos
+        }, ENV.TOKEN_REFRESH_INTERVAL);
         
-        return () => clearInterval(interval);
+        console.log('[TokenManager] Auto-refresh enabled');
+        
+        return () => {
+            console.log('[TokenManager] Auto-refresh disabled');
+            clearInterval(interval);
+        };
     }, [token]);
 };

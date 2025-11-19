@@ -1,21 +1,26 @@
 import SearchBar from '@/components/common/SearchBar';
-import { Author, Genre, UserBook } from '@/types/types';
+import { Author, Genre, SortOption, UserBook } from '@/types/types';
+import { sortBooks } from '@/utils/sortUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { FlatList, Keyboard, RefreshControl, ScrollView, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import BookGridItem from './BookGridItem';
 import FilterModal, { FilterSectionConfig } from './FilterModal';
+import SortModal from './SortModal';
 
 interface BookListSceneProps {
     books: UserBook[];
     isLoading: boolean;
     onRefresh: () => void;
-    listKey: string; // Clave única para la lista (ej: 'reading')
+    listKey: string; // Clave única para la lista (ej: 'reading', 'toRead', 'finished')
+    showRatingSort?: boolean; // Si es true, muestra opciones de ordenación por valoración
 }
 
-const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefresh, listKey }) => {
+const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefresh, listKey, showRatingSort = false }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilterModal, setShowFilterModal] = useState(false);
+    const [showSortModal, setShowSortModal] = useState(false);
+    const [sortOption, setSortOption] = useState<SortOption>('date_added_desc');
     const [filters, setFilters] = useState<Record<string, any>>({
         genres: [],
         authors: [],
@@ -59,8 +64,8 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
         };
     }, [books]);
 
-    // Filtrar libros por búsqueda y filtros
-    const filteredBooks = useMemo(() => {
+    // Filtrar y ordenar libros
+    const filteredAndSortedBooks = useMemo(() => {
         let result = books;
 
         // Filtrar por búsqueda de título
@@ -98,8 +103,9 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
             });
         }
 
-        return result;
-    }, [books, searchQuery, filters]);
+        // Aplicar ordenación
+        return sortBooks(result, sortOption);
+    }, [books, searchQuery, filters, sortOption]);
 
     // Contar filtros activos
     const activeFiltersCount = useMemo(() => {
@@ -200,16 +206,13 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                         {/* Icono de Ordenación */}
                         <TouchableOpacity 
                             activeOpacity={0.6}
-                            onPress={() => {
-                                // TODO: Implementar lógica de ordenación
-                                console.log('Ordenación presionada');
-                            }}
+                            onPress={() => setShowSortModal(true)}
                         >
                             <Ionicons name="swap-vertical-outline" size={22} color="#8A817C" />
                         </TouchableOpacity>
                     </View>
                 </View>
-                {filteredBooks.length === 0 ? (
+                {filteredAndSortedBooks.length === 0 ? (
                     <View className="flex-1 justify-center items-center">
                         <Text className="font-montserrat text-text-light">
                             No se encontraron libros con esos filtros
@@ -218,7 +221,7 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                 ) : (
                     <FlatList
                         key={listKey} 
-                        data={filteredBooks}
+                        data={filteredAndSortedBooks}
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={({ item }) => <BookGridItem item={item} />}
                         numColumns={4}
@@ -245,6 +248,15 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                     filters={filters}
                     onApplyFilters={setFilters}
                     sectionsConfig={sectionsConfig}
+                />
+
+                {/* Modal de Ordenación */}
+                <SortModal
+                    visible={showSortModal}
+                    onClose={() => setShowSortModal(false)}
+                    currentSort={sortOption}
+                    onSelectSort={setSortOption}
+                    showRatingSort={showRatingSort}
                 />
             </View>
         </TouchableWithoutFeedback>

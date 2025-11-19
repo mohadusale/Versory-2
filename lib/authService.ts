@@ -1,37 +1,32 @@
 import { useAuthStore } from '@/store/authStore';
-import axios from 'axios';
+import { refreshAccessToken as refreshToken } from './tokenService';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
-
-// Cliente axios básico sin interceptores
-const baseApi = axios.create({
-    baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
-
-// Función para refrescar token (sin usar el cliente principal)
+/**
+ * Función wrapper para refrescar el token y actualizar el store
+ * @returns true si el refresh fue exitoso, false si falló
+ */
 export const refreshAccessToken = async (): Promise<boolean> => {
-    const { refreshToken, setTokens, logout } = useAuthStore.getState();
+    const { refreshToken: currentRefreshToken, setTokens, logout } = useAuthStore.getState();
     
-    if (!refreshToken) {
+    if (!currentRefreshToken) {
+        console.warn('[AuthService] No refresh token available, logging out');
         logout();
-        console.log("Refresh caducado");
         return false;
     }
     
     try {
-        const response = await baseApi.post('/token/refresh/', {
-            refresh: refreshToken
-        });
+        const tokens = await refreshToken(currentRefreshToken);
         
-        const { access, refresh } = response.data;
-        setTokens(access, refresh || refreshToken);
+        if (!tokens) {
+            console.warn('[AuthService] Token refresh failed, logging out');
+            logout();
+            return false;
+        }
         
+        setTokens(tokens.access, tokens.refresh || currentRefreshToken);
         return true;
     } catch (error) {
-        console.error('Error refreshing token:', error);
+        console.error('[AuthService] Error refreshing token:', error);
         logout();
         return false;
     }

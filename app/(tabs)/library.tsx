@@ -64,6 +64,7 @@ const Library = () => {
             books={finishedBooks}
             isLoading={isLoading}
             onRefresh={refresh}
+            showRatingSort={true}
         />
         ),
     });
