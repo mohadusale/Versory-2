@@ -2,7 +2,7 @@
  * Tipos relacionados con las respuestas de la API
  */
 
-import { User, UserBook } from './types';
+import { UserBook } from './types';
 
 /**
  * Respuesta genérica de la API
@@ -30,7 +30,9 @@ export interface ApiErrorResponse {
 export interface AuthResponse {
   access: string;
   refresh: string;
-  user: User;
+  user_id: number;
+  username: string;
+  email: string;
 }
 
 /**
