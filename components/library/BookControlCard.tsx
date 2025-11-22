@@ -1,81 +1,105 @@
 import StarRating from '@/components/common/StarRating';
+import SimpleConfirmModal from '@/components/library/SimpleConfirmModal';
+import StatusChangeModal from '@/components/library/StatusChangeModal';
 import { useBookMutations } from '@/hooks/useBookMutations';
 import { BookStatus, UserBook } from '@/types/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 interface BookControlCardProps {
     book: UserBook;
 }
 
 const BookControlCard: React.FC<BookControlCardProps> = ({ book }) => {
-    // Recuperamos las funciones del hook (asegúrate de que tu hook acepte o ignore el ID si ya lo usas así)
-    const { addOrUpdateBook, updateProgress, rateBook } = useBookMutations(book.id.toString());
+    const { changeStatus, updateProgress, updateRating } = useBookMutations(book.id.toString());
 
-    // Estado local para inputs (evita lag en la UI mientras escribes)
     const [pagesInput, setPagesInput] = useState(book.pages_read?.toString() || '0');
-    
-    // NUEVO: Estado visual de la pestaña seleccionada 
-    // (permite estar en "Terminado" visualmente antes de guardar en el backend)
-    const [selectedTab, setSelectedTab] = useState<BookStatus>(book.status);
+    const [showModal, setShowModal] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showCompleteConfirmModal, setShowCompleteConfirmModal] = useState(false);
+    const [targetStatus, setTargetStatus] = useState<BookStatus>('TR');
 
-    // Sincronizar si el libro cambia externamente (ej. al recargar)
     useEffect(() => {
         setPagesInput(book.pages_read?.toString() || '0');
-        setSelectedTab(book.status);
-    }, [book.pages_read, book.status]);
+    }, [book.pages_read]);
 
-    // --- MANEJADORES ---
-
+    // Maneja el click en un tab
     const handleTabPress = useCallback((newStatus: BookStatus) => {
-        setSelectedTab(newStatus); // Cambio visual inmediato
+        if (newStatus === book.status) return; // Ya está en ese estado
 
-        if (newStatus === 'FN') {
-            // CASO ESPECIAL: Si vamos a "Terminado", NO guardamos todavía.
-            // Esperamos a que el usuario ponga la nota.
+        // Si cambia a "Por Leer", mostrar modal de confirmación
+        if (newStatus === 'TR') {
+            setTargetStatus(newStatus);
+            setShowConfirmModal(true);
             return;
         }
 
-        // Para "Por Leer" y "Leyendo", guardamos inmediatamente si hubo cambio
-        if (newStatus !== book.status) {
-            addOrUpdateBook({ isbn: book.book.isbn, status: newStatus });
-        }
-    }, [book.status, book.book.isbn, addOrUpdateBook]);
+        // Para "Leyendo" y "Leído", abrir modal
+        setTargetStatus(newStatus);
+        setShowModal(true);
+    }, [book.status, changeStatus]);
+
+    // Confirma el cambio de estado desde el modal
+    const handleModalConfirm = useCallback(
+        async (data: { status: BookStatus; start_date?: string; finished_date?: string; rating?: number; pages_read?: number }) => {
+            setShowModal(false);
+            await changeStatus(data);
+        },
+        [changeStatus]
+    );
 
     const handlePageSubmit = useCallback(() => {
         const pages = parseInt(pagesInput);
-        if (!isNaN(pages) && pages !== book.pages_read) {
-            // Validar que no exceda el total
-            const finalPages = Math.min(pages, book.book.pages_count);
-            setPagesInput(finalPages.toString());
+        if (isNaN(pages)) return;
+
+        const finalPages = Math.max(0, Math.min(pages, book.book.pages_count));
+        setPagesInput(finalPages.toString());
+
+        if (finalPages !== book.pages_read) {
             updateProgress({ id: book.id, pages: finalPages });
         }
-    }, [pagesInput, book.pages_read, book.book.pages_count, book.id, updateProgress]);
 
-    const handleRating = useCallback((rating: number) => {
-        if (selectedTab === 'FN') {
-            // Si estamos en la pestaña de Terminado, al votar enviamos TODO junto:
-            // 1. Cambio de estado a FN
-            // 2. El rating
-            addOrUpdateBook({ 
-                isbn: book.book.isbn, 
-                status: 'FN', 
-                data: { rating } 
-            });
-        } else {
-            // Si ya estaba terminado y solo editamos la nota
-            rateBook({ id: book.id, rating });
+        // Si llegó al 100%, sugerir pasar a Leído
+        if (finalPages === book.book.pages_count && book.status === 'RD') {
+            setShowCompleteConfirmModal(true);
         }
-    }, [book.id, book.book.isbn, selectedTab, addOrUpdateBook, rateBook]);
+    }, [pagesInput, book.pages_read, book.book.pages_count, book.id, book.status, updateProgress]);
 
-    // Memorizar los botones de estado
+    const handleRatingChange = useCallback(
+        (rating: number) => {
+            updateRating({ id: book.id, rating });
+        },
+        [book.id, updateRating]
+    );
+
+    // Funciones para el modal de confirmación "Por Leer"
+    const handleConfirmToRead = useCallback(async () => {
+        setShowConfirmModal(false);
+        await changeStatus({ status: 'TR' });
+    }, [changeStatus]);
+
+    const handleCancelConfirm = useCallback(() => {
+        setShowConfirmModal(false);
+    }, []);
+
+    // Funciones para el modal de confirmación "Completar libro"
+    const handleConfirmComplete = useCallback(() => {
+        setShowCompleteConfirmModal(false);
+        setTargetStatus('FN');
+        setShowModal(true);
+    }, []);
+
+    const handleCancelComplete = useCallback(() => {
+        setShowCompleteConfirmModal(false);
+    }, []);
+
+    // --- RENDERIZADO DE BOTONES (Memoizado) ---
     const statusButtons = useMemo(() => {
         const statuses: BookStatus[] = ['TR', 'RD', 'FN'];
         
         return statuses.map((status) => {
-            // Usamos 'selectedTab' para la UI, no 'book.status' directamente
-            const isActive = selectedTab === status;
+            const isActive = book.status === status;
             
             let label = 'Por Leer';
             let icon: keyof typeof Ionicons.glyphMap = 'bookmark-outline';
@@ -83,14 +107,11 @@ const BookControlCard: React.FC<BookControlCardProps> = ({ book }) => {
             if (status === 'RD') { label = 'Leyendo'; icon = 'book-outline'; }
             if (status === 'FN') { label = 'Leído'; icon = 'checkmark-circle-outline'; }
 
-            // Estilo híbrido: NativeWind para estructura, style en línea para lo dinámico (tu solución)
             return (
-                <TouchableOpacity
+                <Pressable
                     key={status}
                     onPress={() => handleTabPress(status)}
-                    className="flex-1 flex-row items-center justify-center py-3 rounded-lg gap-2"
-                    style={isActive ? { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 } : undefined}
-                    activeOpacity={0.7}
+                    style={[styles.tabButton, isActive && styles.activeTab]}
                 >
                     <Ionicons 
                         name={isActive ? icon.replace('-outline', '') as any : icon} 
@@ -98,94 +119,249 @@ const BookControlCard: React.FC<BookControlCardProps> = ({ book }) => {
                         color={isActive ? '#E0AFA0' : '#8A817C'} 
                     />
                     {isActive && (
-                        <Text className="text-xs font-montserrat-bold text-text-dark">
-                            {label}
-                        </Text>
+                        <Text style={styles.activeTabText}>{label}</Text>
                     )}
-                </TouchableOpacity>
+                </Pressable>
             );
         });
-    }, [selectedTab, handleTabPress]);
+    }, [book.status, handleTabPress]);
 
-    // --- RENDERIZADO ---
+    const progressPercentage = Math.round(((parseInt(pagesInput) || 0) / book.book.pages_count) * 100);
+    const isComplete = progressPercentage >= 100;
 
     return (
-        <View className="mx-6 mt-6 bg-white rounded-2xl p-4 shadow-sm border border-primary/20">
-            
-            {/* 1. Selector de Estado */}
-            <View className="flex-row bg-background rounded-xl p-1 mb-4">
-                {statusButtons}
+        <>
+            <View style={styles.card}>
+                <View style={styles.tabContainer}>
+                    {statusButtons}
+                </View>
+
+                {book.status === 'RD' && (
+                    <View>
+                        <View style={styles.progressInfo}>
+                            <Text style={styles.label}>TU PROGRESO</Text>
+                            <Text style={[styles.label, isComplete && styles.completeText]}>
+                                {progressPercentage}%
+                            </Text>
+                        </View>
+                        <View style={styles.progressRow}>
+                            <View style={styles.progressBarBg}>
+                                <View 
+                                    style={[
+                                        styles.progressBarFill, 
+                                        isComplete && styles.progressBarComplete,
+                                        { width: `${Math.min(progressPercentage, 100)}%` }
+                                    ]} 
+                                />
+                            </View>
+                            <View style={styles.inputContainer}>
+                                <TextInput 
+                                    value={pagesInput}
+                                    onChangeText={setPagesInput}
+                                    onEndEditing={handlePageSubmit}
+                                    onSubmitEditing={handlePageSubmit}
+                                    keyboardType="number-pad"
+                                    style={styles.input}
+                                    maxLength={5}
+                                    returnKeyType="done"
+                                />
+                                <Text style={styles.unitText}>/ {book.book.pages_count}</Text>
+                            </View>
+                        </View>
+                    </View>
+                )}
+
+                {book.status === 'FN' && (
+                    <View style={styles.centerContent}>
+                        {book.rating ? (
+                            <>
+                                <StarRating 
+                                    rating={book.rating} 
+                                    onRate={handleRatingChange}
+                                    size={40}
+                                />
+                            </>
+                        ) : (
+                            <>
+                                <Text style={[styles.label, { marginBottom: 16 }]}>¿CÓMO LO CALIFICARÍAS?</Text>
+                                <StarRating 
+                                    rating={0} 
+                                    onRate={handleRatingChange}
+                                    size={40}
+                                />
+                                <Text style={styles.hint}>Toca una estrella para valorar este libro</Text>
+                            </>
+                        )}
+                    </View>
+                )}
+
+                {book.status === 'TR' && (
+                    <View style={styles.centerContent}>
+                        <Text style={styles.quoteText}>
+                            "Un lector vive mil vidas antes de morir..."
+                        </Text>
+                    </View>
+                )}
             </View>
 
-            {/* 2. Contenido Dinámico (Basado en selectedTab) */}
-            
-            {/* CASO: LEYENDO */}
-            {selectedTab === 'RD' && (
-                <View>
-                    <View className="flex-row justify-between items-center mb-2">
-                        <Text className="text-text-light font-montserrat text-xs">TU PROGRESO</Text>
-                        <Text className="text-text-light font-montserrat text-xs">
-                            {Math.round(((book.pages_read || 0) / book.book.pages_count) * 100)}%
-                        </Text>
-                    </View>
+            {/* Modal de cambio de estado */}
+            <StatusChangeModal
+                visible={showModal}
+                targetStatus={targetStatus}
+                currentStartDate={book.start_date}
+                bookPagesCount={book.book.pages_count}
+                onConfirm={handleModalConfirm}
+                onCancel={() => setShowModal(false)}
+            />
 
-                    <View className="flex-row items-center gap-3">
-                        {/* Barra Visual */}
-                        <View className="flex-1 h-3 bg-background rounded-full overflow-hidden">
-                            <View 
-                                className="h-full bg-accent rounded-full"
-                                style={{ width: `${((book.pages_read || 0) / book.book.pages_count) * 100}%` }}
-                            />
-                        </View>
+            {/* Modal de confirmación para "Por Leer" */}
+            <SimpleConfirmModal
+                visible={showConfirmModal}
+                title="Cambiar estado"
+                message="¿Mover este libro a 'Por Leer'? Se borrarán las fechas y el progreso."
+                confirmText="Confirmar"
+                cancelText="Cancelar"
+                onConfirm={handleConfirmToRead}
+                onCancel={handleCancelConfirm}
+                icon="bookmark"
+            />
 
-                        {/* Input Numérico */}
-                        <View className="bg-background border border-primary/30 rounded-lg px-3 py-1 min-w-[80px] flex-row items-center">
-                            <TextInput 
-                                value={pagesInput}
-                                onChangeText={setPagesInput}
-                                onEndEditing={handlePageSubmit}
-                                keyboardType="number-pad"
-                                className="font-montserrat-medium text-text-dark text-right flex-1"
-                                maxLength={5}
-                            />
-                            <Text className="text-text-light text-xs ml-1">pág</Text>
-                        </View>
-                    </View>
-                </View>
-            )}
-
-            {/* CASO: TERMINADO */}
-            {selectedTab === 'FN' && (
-                <View className="items-center py-2">
-                    {/* Mensaje guía si aún no está guardado en el backend como FN */}
-                    {book.status !== 'FN' ? (
-                        <Text className="text-accent font-montserrat-bold text-xs mb-2">
-                            ¡Valora el libro para terminar!
-                        </Text>
-                    ) : (
-                        <Text className="text-text-light font-montserrat text-xs mb-2">
-                            TU VALORACIÓN
-                        </Text>
-                    )}
-                    
-                    <StarRating 
-                        rating={book.rating || 0} 
-                        onRate={handleRating}
-                        size={36}
-                    />
-                </View>
-            )}
-
-            {/* CASO: POR LEER */}
-            {selectedTab === 'TR' && (
-                <View className="items-center py-2">
-                    <Text className="text-text-light font-montserrat-medium text-sm italic text-center">
-                        "Un lector vive mil vidas antes de morir..."
-                    </Text>
-                </View>
-            )}
-        </View>
+            {/* Modal de confirmación para "Completar libro" */}
+            <SimpleConfirmModal
+                visible={showCompleteConfirmModal}
+                title="¡Felicidades!"
+                message="¿Has terminado el libro? ¿Quieres marcarlo como leído?"
+                confirmText="Sí, marcar como leído"
+                cancelText="Ahora no"
+                onConfirm={handleConfirmComplete}
+                onCancel={handleCancelComplete}
+                icon="checkmark-circle"
+            />
+        </>
     );
 };
+
+const styles = StyleSheet.create({
+    card: {
+        marginHorizontal: 24,
+        marginTop: 24,
+        backgroundColor: 'white',
+        borderRadius: 16,
+        padding: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: 'rgba(188, 184, 177, 0.2)',
+    },
+    tabContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#F4F3EE',
+        borderRadius: 12,
+        padding: 4,
+        marginBottom: 16,
+    },
+    tabButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        borderRadius: 8,
+        gap: 8,
+    },
+    activeTab: {
+        backgroundColor: 'white',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 1,
+        elevation: 1,
+    },
+    activeTabText: {
+        fontSize: 12,
+        fontFamily: 'Montserrat_700Bold',
+        color: '#463F3A',
+    },
+    progressInfo: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    label: {
+        fontSize: 12,
+        fontFamily: 'Montserrat_400Regular',
+        color: '#8A817C',
+        marginBottom: 8,
+    },
+    progressRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    progressBarBg: {
+        flex: 1,
+        height: 12,
+        backgroundColor: '#F4F3EE',
+        borderRadius: 999,
+        overflow: 'hidden',
+    },
+    progressBarFill: {
+        height: '100%',
+        backgroundColor: '#E0AFA0',
+        borderRadius: 999,
+    },
+    progressBarComplete: {
+        backgroundColor: '#4CAF50',
+    },
+    completeText: {
+        color: '#4CAF50',
+        fontFamily: 'Montserrat_700Bold',
+    },
+    hint: {
+        fontSize: 12,
+        fontFamily: 'Montserrat_400Regular',
+        color: '#8A817C',
+        marginTop: 8,
+        textAlign: 'center',
+    },
+    inputContainer: {
+        backgroundColor: '#F4F3EE',
+        borderWidth: 1,
+        borderColor: 'rgba(188, 184, 177, 0.3)',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        minWidth: 100,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    input: {
+        fontFamily: 'Montserrat_500Medium',
+        color: '#463F3A',
+        textAlign: 'right',
+        minWidth: 40,
+        fontSize: 14,
+    },
+    unitText: {
+        fontSize: 12,
+        color: '#8A817C',
+        marginLeft: 4,
+        fontFamily: 'Montserrat_400Regular',
+    },
+    centerContent: {
+        alignItems: 'center',
+        paddingVertical: 8,
+    },
+    quoteText: {
+        fontSize: 14,
+        fontFamily: 'Montserrat_500Medium',
+        fontStyle: 'italic',
+        color: '#8A817C',
+        textAlign: 'center',
+    }
+});
 
 export default BookControlCard;

@@ -1,12 +1,16 @@
 import SearchBar from '@/components/common/SearchBar';
-import { Author, Genre, SortOption, UserBook } from '@/types/types';
+import { Author, BookStatus, Genre, SortOption, UserBook } from '@/types/types';
 import { sortBooks } from '@/utils/sortUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { FlatList, Keyboard, RefreshControl, ScrollView, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, FlatList, Keyboard, RefreshControl, ScrollView, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import BookGridItem from './BookGridItem';
 import FilterModal, { FilterSectionConfig } from './FilterModal';
 import SortModal from './SortModal';
+import StatusChangeModal from './StatusChangeModal';
+import ConfirmationModal from './ConfirmationModal';
+import SimpleConfirmModal from './SimpleConfirmModal';
+import { useBookMutations } from '@/hooks/useBookMutations';
 
 interface BookListSceneProps {
     books: UserBook[];
@@ -25,7 +29,106 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
         genres: [],
         authors: [],
         year: null,
+        rating: 0,
     });
+
+    // --- Estado para Quick Status Change ---
+    const [selectedBook, setSelectedBook] = useState<UserBook | null>(null);
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+    const [showSimpleConfirmModal, setShowSimpleConfirmModal] = useState(false);
+    const [targetStatus, setTargetStatus] = useState<BookStatus | null>(null);
+
+    // Hook de mutaciones
+    const { changeStatus, deleteBook } = useBookMutations(selectedBook?.id.toString() || '0');
+
+    const handleLongPressBook = (book: UserBook) => {
+        setSelectedBook(book);
+        setShowConfirmationModal(true);
+    };
+
+    const handleMoveToStatus = (status: BookStatus) => {
+        console.log('handleMoveToStatus called with:', status);
+        if (!selectedBook) {
+            console.log('No selected book');
+            return;
+        }
+
+        console.log('Selected book:', selectedBook.book.title);
+        setTargetStatus(status);
+        setShowConfirmationModal(false); // Cerrar el modal de confirmación primero
+        
+        // Si es "Por Leer", mostrar SimpleConfirmModal
+        if (status === 'TR') {
+            setShowSimpleConfirmModal(true);
+        } else {
+            // Para otros estados, mostrar StatusChangeModal
+            setShowStatusModal(true);
+        }
+        
+        console.log('Modal should show now');
+        console.log('State after update - status:', status);
+    };
+
+    const handleDelete = async () => {
+        if (!selectedBook) return;
+
+        Alert.alert(
+            "Eliminar libro",
+            `¿Estás seguro de que quieres eliminar "${selectedBook.book.title}" de tu biblioteca?`,
+            [
+                { text: "Cancelar", style: "cancel" },
+                { 
+                    text: "Eliminar", 
+                    style: "destructive", 
+                    onPress: async () => {
+                        try {
+                            await deleteBook(selectedBook.id);
+                            setSelectedBook(null);
+                            setShowConfirmationModal(false);
+                        } catch (error) {
+                            // Error is handled by useErrorHandler in the hook
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleModalConfirm = async (data: { status: BookStatus; start_date?: string; finished_date?: string; rating?: number; pages_read?: number }) => {
+        console.log('handleModalConfirm called with:', data);
+        try {
+            await changeStatus(data);
+            console.log('Status changed successfully');
+            setShowStatusModal(false);
+            setSelectedBook(null);
+        } catch (error) {
+            console.error('Error changing status:', error);
+        }
+    };
+
+    const handleModalCancel = () => {
+        setShowStatusModal(false);
+        setSelectedBook(null);
+    };
+
+    // Funciones para SimpleConfirmModal (Por Leer)
+    const handleSimpleConfirm = async () => {
+        if (!selectedBook) return;
+        
+        try {
+            await changeStatus({ status: 'TR' });
+            setShowSimpleConfirmModal(false);
+            setSelectedBook(null);
+        } catch (error) {
+            console.error('Error changing to TR:', error);
+        }
+    };
+
+    const handleSimpleCancel = () => {
+        setShowSimpleConfirmModal(false);
+        setSelectedBook(null);
+    };
 
     // Extraer géneros, autores y años únicos de los libros
     const { availableGenres, availableAuthors, availableYears } = useMemo(() => {
@@ -71,7 +174,7 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
         // Filtrar por búsqueda de título
         if (searchQuery.trim()) {
             const lowerQuery = searchQuery.toLowerCase();
-            result = result.filter(book => 
+            result = result.filter(book =>
                 book.book.title.toLowerCase().includes(lowerQuery)
             );
         }
@@ -79,7 +182,7 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
         // Filtrar por géneros
         if (filters.genres?.length > 0) {
             result = result.filter(book =>
-                book.book.genres.some(genre => 
+                book.book.genres.some(genre =>
                     filters.genres.includes(genre.name)
                 )
             );
@@ -88,7 +191,7 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
         // Filtrar por autores
         if (filters.authors?.length > 0) {
             result = result.filter(book =>
-                book.book.authors.some(author => 
+                book.book.authors.some(author =>
                     filters.authors.includes(author.name)
                 )
             );
@@ -100,6 +203,15 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                 if (!book.book.published_date) return false;
                 const year = new Date(book.book.published_date).getFullYear();
                 return year === filters.year;
+            });
+        }
+
+        // Filtrar por rating (solo para libros finalizados)
+        if (filters.rating && filters.rating > 0) {
+            result = result.filter(book => {
+                if (!book.rating) return false;
+                // Filtrar por rating exacto (con tolerancia de 0.5 para incluir medias estrellas)
+                return book.rating >= filters.rating - 0.25 && book.rating <= filters.rating + 0.25;
             });
         }
 
@@ -122,7 +234,7 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
 
     // Prop de configuración para el modal genérico
     const sectionsConfig = useMemo((): FilterSectionConfig[] => {
-        return [
+        const baseConfig: FilterSectionConfig[] = [
             // Año
             {
                 id: 'year',
@@ -153,7 +265,19 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                 getValue: (author: Author) => author.name,
             }
         ];
-    }, [availableGenres, availableAuthors, availableYears]);
+
+        // Si es la sección de finalizados, añadir filtro de rating
+        if (showRatingSort) {
+            baseConfig.unshift({
+                id: 'rating',
+                title: 'Valoración',
+                type: 'star-rating',
+                data: [null],
+            });
+        }
+
+        return baseConfig;
+    }, [availableGenres, availableAuthors, availableYears, showRatingSort]);
 
     // Si no hay libros en esta sección, mostrar un mensaje
     if (books.length === 0) {
@@ -175,7 +299,7 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View className="flex-1">
                 <View className="flex-row items-center justify-between px-4 pt-3 pb-3">
-                    <SearchBar 
+                    <SearchBar
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                         placeholder="Buscar..."
@@ -184,14 +308,14 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                     <View className="flex-row items-center gap-4">
                         {/* Icono de Filtro con Badge */}
                         <View className="relative">
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 activeOpacity={0.6}
                                 onPress={() => setShowFilterModal(true)}
                             >
-                                <Ionicons 
-                                    name={activeFiltersCount > 0 ? "funnel" : "funnel-outline"} 
-                                    size={22} 
-                                    color={activeFiltersCount > 0 ? "#E0AFA0" : "#8A817C"} 
+                                <Ionicons
+                                    name={activeFiltersCount > 0 ? "funnel" : "funnel-outline"}
+                                    size={22}
+                                    color={activeFiltersCount > 0 ? "#E0AFA0" : "#8A817C"}
                                 />
                             </TouchableOpacity>
                             {activeFiltersCount > 0 && (
@@ -204,7 +328,7 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                         </View>
 
                         {/* Icono de Ordenación */}
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             activeOpacity={0.6}
                             onPress={() => setShowSortModal(true)}
                         >
@@ -220,13 +344,19 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                     </View>
                 ) : (
                     <FlatList
-                        key={listKey} 
+                        key={listKey}
                         data={filteredAndSortedBooks}
                         keyExtractor={(item) => item.id.toString()}
-                        renderItem={({ item }) => <BookGridItem item={item} />}
+                        renderItem={({ item }) => (
+                            <BookGridItem
+                                item={item}
+                                onLongPress={handleLongPressBook}
+                                showRating={showRatingSort}
+                            />
+                        )}
                         numColumns={4}
-                        contentContainerStyle={{ 
-                            paddingBottom: 20,
+                        contentContainerStyle={{
+                            paddingBottom: 80,
                             paddingTop: 8,
                             paddingHorizontal: 4
                         }}
@@ -257,6 +387,42 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                     currentSort={sortOption}
                     onSelectSort={setSortOption}
                     showRatingSort={showRatingSort}
+                />
+
+                {/* Modal de Confirmación (Long Press) */}
+                <ConfirmationModal
+                    visible={showConfirmationModal}
+                    book={selectedBook}
+                    onClose={() => {
+                        setShowConfirmationModal(false);
+                        setSelectedBook(null);
+                    }}
+                    onMoveToStatus={handleMoveToStatus}
+                    onDelete={handleDelete}
+                />
+
+                {/* Modal de Cambio de Estado (Fechas/Rating) */}
+                {selectedBook && targetStatus && (
+                    <StatusChangeModal
+                        visible={showStatusModal}
+                        targetStatus={targetStatus}
+                        currentStartDate={selectedBook.start_date}
+                        bookPagesCount={selectedBook.book.pages_count}
+                        onConfirm={handleModalConfirm}
+                        onCancel={handleModalCancel}
+                    />
+                )}
+
+                {/* Modal Simple de Confirmación (Para "Por Leer") */}
+                <SimpleConfirmModal
+                    visible={showSimpleConfirmModal}
+                    title="Cambiar estado"
+                    message={selectedBook ? `¿Mover "${selectedBook.book.title}" a "Por Leer"? Se borrarán las fechas y el progreso.` : ''}
+                    confirmText="Confirmar"
+                    cancelText="Cancelar"
+                    onConfirm={handleSimpleConfirm}
+                    onCancel={handleSimpleCancel}
+                    icon="bookmark"
                 />
             </View>
         </TouchableWithoutFeedback>

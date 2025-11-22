@@ -7,9 +7,25 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from 'react';
+import { LogBox } from 'react-native';
 import "./global.css";
 
-SplashScreen.preventAutoHideAsync();
+// Suprimir warnings específicos de SplashScreen
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  const errorString = args.join(' ');
+  if (
+    errorString.includes('No native splash screen') ||
+    errorString.includes('Uncaught (in promise, id:')
+  ) {
+    return; // Silenciar estos errores específicos
+  }
+  originalConsoleError(...args); // Mostrar otros errores normalmente
+};
+
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Ignore error if splash screen already hidden
+});
 
 // Imprimir configuración en desarrollo
 if (__DEV__) {
@@ -60,7 +76,9 @@ export default function RootLayout() {
       }
     }
 
-    SplashScreen.hideAsync();
+    SplashScreen.hideAsync().catch(() => {
+      // Ignore error if splash screen already hidden
+    });
 
   }, [fontsLoaded, fontError, user, segments]);
 

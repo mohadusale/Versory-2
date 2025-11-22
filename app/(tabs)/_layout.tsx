@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 
 const TabIcon = ({ iconName, focused }: { iconName: keyof typeof Ionicons.glyphMap, focused: boolean }    ) => {
-    return <Ionicons name={iconName} size={24} color={focused ? '#463F3A' : '#8A817C'} />;
+    return <Ionicons name={iconName} size={24} color={focused ? '#E0AFA0' : '#8A817C'} />;
 };
 
 const TabsLayout = () => {

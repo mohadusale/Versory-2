@@ -31,9 +31,9 @@ const Library = () => {
     const renderTabBar = (props: any) => (
         <TabBar
             {...props}
-            indicatorStyle={{ backgroundColor: "#FF7B54" }}
+            indicatorStyle={{ backgroundColor: "#E0AFA0" }}
             style={{ backgroundColor: "#F8F5F1" }}
-            activeColor='#FF7B54'
+            activeColor='#E0AFA0'
             inactiveColor='#6B6664'
             pressOpacity={0.7}
             scrollEnabled={false}

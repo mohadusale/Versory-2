@@ -43,10 +43,46 @@ export const apiRegister = async (username: string, email: string, password: str
 // --- BOOKS ---
 
 /**
- * Busca un libro por ISBN
+ * Respuesta del endpoint de búsqueda por ISBN
  */
-export const apiSearchBook = async (isbn: string): Promise<Book> => {
-    const response = await api.post('/search-isbn', { isbn });
+export interface SearchISBNResponse {
+    status: 'found_in_db' | 'found_and_created' | 'not_found';
+    data?: Book;
+    message?: string;
+}
+
+/**
+ * Busca un libro por ISBN
+ * Si no existe en BD, lo busca en ISBNdb y lo guarda
+ */
+export const apiSearchBook = async (isbn: string): Promise<SearchISBNResponse> => {
+    const response = await api.post<SearchISBNResponse>('/search-isbn/', { isbn });
+    return response.data;
+};
+
+/**
+ * Busca libros por query general (título o autor)
+ * Devuelve resultados de BD local + ISBNdb API
+ */
+export interface SearchBookResult {
+    isbn: string;
+    title: string;
+    authors: { id?: number; name: string }[];
+    cover_url?: string;
+    is_local?: boolean; // false = está en ISBNdb pero no en nuestra BD
+    description?: string;
+    pages_count?: number;
+    published_date?: string;
+    genres?: { id?: number; name: string }[];
+    publisher?: string;
+    language?: string;
+    source?: string;
+}
+
+export const apiSearchBooks = async (query: string): Promise<SearchBookResult[]> => {
+    const response = await api.get<SearchBookResult[]>('/books/search/', {
+        params: { q: query }
+    });
     return response.data;
 };
 

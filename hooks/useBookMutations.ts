@@ -7,24 +7,53 @@ export const useBookMutations = (bookId: string) => {
     const queryClient = useQueryClient();
     const handleError = useErrorHandler();
 
-    // 1. Añadir o Mover libro (Usando ISBN)
-    const addOrUpdateBookMutation = useMutation({
-        // Ahora acepta un objeto 'data' opcional
-        mutationFn: ({ isbn, status, data }: { isbn: string, status: BookStatus, data?: any }) => 
-            apiAddOrUpdateBook(isbn, status, data),
+    // 1. Cambiar Estado (con fechas, rating y páginas opcional)
+    const changeStatusMutation = useMutation({
+        mutationFn: ({ status, start_date, finished_date, rating, pages_read }: { 
+            status: BookStatus; 
+            start_date?: string; 
+            finished_date?: string; 
+            rating?: number;
+            pages_read?: number;
+        }) => {
+            const id = parseInt(bookId);
+            return apiPatchUserBook(id, { status, start_date, finished_date, rating, pages_read });
+        },
+        onMutate: async (variables) => {
+            // Optimistic update
+            const queryKey = ['book', bookId];
+            const previousBook = queryClient.getQueryData<UserBook>(queryKey);
+            
+            if (previousBook) {
+                queryClient.setQueryData<UserBook>(queryKey, {
+                    ...previousBook,
+                    status: variables.status,
+                    start_date: variables.start_date || previousBook.start_date,
+                    finished_date: variables.finished_date || previousBook.finished_date,
+                    rating: variables.rating !== undefined ? variables.rating : previousBook.rating,
+                    pages_read: variables.pages_read !== undefined ? variables.pages_read : previousBook.pages_read,
+                });
+            }
+            
+            return { previousBook };
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['library'] });
-            queryClient.invalidateQueries({ queryKey: ['book'] }); 
+            queryClient.invalidateQueries({ queryKey: ['book', bookId] });
         },
-        onError: handleError,
+        onError: (error, variables, context) => {
+            if (context?.previousBook) {
+                queryClient.setQueryData(['book', bookId], context.previousBook);
+            }
+            handleError(error);
+        },
     });
 
-    // 2. Actualizar Progreso (Usando ID de Status)
+    // 2. Actualizar Progreso (solo páginas)
     const updateProgressMutation = useMutation({
         mutationFn: ({ id, pages }: { id: number, pages: number }) => 
-            apiPatchUserBook(id, { pages_read: pages, status: 'RD' }), 
+            apiPatchUserBook(id, { pages_read: pages }), 
         onMutate: async ({ pages }) => {
-            // Actualizar el estado localmente sin esperar al servidor
             const queryKey = ['book', bookId];
             const previousBook = queryClient.getQueryData<UserBook>(queryKey);
             
@@ -32,18 +61,16 @@ export const useBookMutations = (bookId: string) => {
                 queryClient.setQueryData<UserBook>(queryKey, {
                     ...previousBook,
                     pages_read: pages,
-                    status: 'RD',
                 });
             }
             
             return { previousBook };
         },
         onSuccess: () => {
-            // Solo invalidar la librería, NO el libro actual
             queryClient.invalidateQueries({ queryKey: ['library'] });
+            queryClient.invalidateQueries({ queryKey: ['book', bookId] });
         },
         onError: (error, variables, context) => {
-            // Si falla, revertir
             if (context?.previousBook) {
                 queryClient.setQueryData(['book', bookId], context.previousBook);
             }
@@ -51,12 +78,11 @@ export const useBookMutations = (bookId: string) => {
         },
     });
 
-    // 3. Puntuar y Terminar (Usando ID de Status)
-    const rateBookMutation = useMutation({
+    // 3. Actualizar Rating (solo valoración)
+    const updateRatingMutation = useMutation({
         mutationFn: ({ id, rating }: { id: number, rating: number }) => 
-            apiPatchUserBook(id, { rating, status: 'FN', finished_date: new Date().toISOString().split('T')[0] }), 
+            apiPatchUserBook(id, { rating }),
         onMutate: async ({ rating }) => {
-            // Actualizar el estado localmente sin esperar al servidor
             const queryKey = ['book', bookId];
             const previousBook = queryClient.getQueryData<UserBook>(queryKey);
             
@@ -64,19 +90,16 @@ export const useBookMutations = (bookId: string) => {
                 queryClient.setQueryData<UserBook>(queryKey, {
                     ...previousBook,
                     rating,
-                    status: 'FN',
-                    finished_date: new Date().toISOString().split('T')[0],
                 });
             }
             
             return { previousBook };
         },
         onSuccess: () => {
-            // Solo invalidar la librería, NO el libro actual
             queryClient.invalidateQueries({ queryKey: ['library'] });
+            queryClient.invalidateQueries({ queryKey: ['book', bookId] });
         },
         onError: (error, variables, context) => {
-            // Si falla, revertir
             if (context?.previousBook) {
                 queryClient.setQueryData(['book', bookId], context.previousBook);
             }
@@ -84,7 +107,21 @@ export const useBookMutations = (bookId: string) => {
         },
     });
 
-    // 4. Eliminar
+    // 4. Actualizar Fechas
+    const updateDatesMutation = useMutation({
+        mutationFn: ({ id, start_date, finished_date }: { 
+            id: number; 
+            start_date?: string; 
+            finished_date?: string;
+        }) => apiPatchUserBook(id, { start_date, finished_date }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['library'] });
+            queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+        },
+        onError: handleError,
+    });
+
+    // 5. Eliminar
     const deleteBookMutation = useMutation({
         mutationFn: (id: number) => apiDeleteUserBook(id),
         onSuccess: () => {
@@ -93,27 +130,30 @@ export const useBookMutations = (bookId: string) => {
         onError: handleError,
     });
     
-    // 5. Crear Reseña
+    // 6. Crear Reseña
     const addReviewMutation = useMutation({
         mutationFn: ({ id, review }: { id: number, review: string }) =>
             apiCreateReview(id, review),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['library'] });
+            queryClient.invalidateQueries({ queryKey: ['book', bookId] });
         },
         onError: handleError
     });
 
     return {
-        addOrUpdateBook: addOrUpdateBookMutation.mutateAsync,
+        changeStatus: changeStatusMutation.mutateAsync,
         updateProgress: updateProgressMutation.mutateAsync,
-        rateBook: rateBookMutation.mutateAsync,
+        updateRating: updateRatingMutation.mutateAsync,
+        updateDates: updateDatesMutation.mutateAsync,
         deleteBook: deleteBookMutation.mutateAsync,
         addReview: addReviewMutation.mutateAsync,
         
         isUpdating: 
-            addOrUpdateBookMutation.isPending || 
+            changeStatusMutation.isPending || 
             updateProgressMutation.isPending || 
-            rateBookMutation.isPending ||
+            updateRatingMutation.isPending ||
+            updateDatesMutation.isPending ||
             deleteBookMutation.isPending
     };
 };

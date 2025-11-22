@@ -1,10 +1,11 @@
 import SearchBar from '@/components/common/SearchBar';
+import StarRating from '@/components/common/StarRating';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { FlatList, SectionList, Text, TouchableOpacity, View } from 'react-native';
 import Modal from 'react-native-modal';
 
-export type FilterType = 'single-horizontal' | 'multi-list';
+export type FilterType = 'single-horizontal' | 'multi-list' | 'star-rating';
 type SingleHorizontalData = (string | number | null)[];
 type MultiListData = any[];
 
@@ -29,7 +30,14 @@ interface MultiListConfig<T> {
     getSearchableString?: (item: T) => string;
 }
 
-export type FilterSectionConfig = SingleHorizontalConfig | MultiListConfig<any>;
+interface StarRatingConfig {
+    id: string;
+    title: string;
+    type: 'star-rating';
+    data: null[]; // Solo para compatibilidad con la estructura
+}
+
+export type FilterSectionConfig = SingleHorizontalConfig | MultiListConfig<any> | StarRatingConfig;
 
 interface FilterModalProps {
     visible: boolean;
@@ -78,6 +86,12 @@ const FilterModal: React.FC<FilterModalProps> = ({
                         newFilters[sectionId] = [...currentValues, value];
                     }
                     break;
+                
+                case 'star-rating':
+                    // Para rating, simplemente asigna el valor numérico
+                    newFilters[sectionId] = value;
+                    break;
+                    
                 default: 
                     break;
             }
@@ -115,6 +129,15 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 return {
                     ...config,
                     data: [config.data], 
+                    isExpandable: false,
+                    isExpanded: true,
+                };
+            }
+
+            if (config.type === 'star-rating') {
+                return {
+                    ...config,
+                    data: [null], // Dato placeholder
                     isExpandable: false,
                     isExpanded: true,
                 };
@@ -200,6 +223,20 @@ const FilterModal: React.FC<FilterModalProps> = ({
                         );
                     }}
                 />
+            );
+        }
+
+        if (section.type === 'star-rating') {
+            const currentRating = localFilters[section.id] || 0;
+            
+            return (
+                <View className='py-4 items-center'>
+                    <StarRating 
+                        rating={currentRating}
+                        onRate={(rating) => handleFilterChange(section.id, rating, 'star-rating')}
+                        size={36}
+                    />
+                </View>
             );
         }
 
