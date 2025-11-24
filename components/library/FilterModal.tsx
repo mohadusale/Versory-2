@@ -113,7 +113,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
             if (Array.isArray(value) && value.length > 0) {
                 return count + value.length;
             }
-            if (value !== null && !Array.isArray(value)) {
+            // Para valores no-array, solo contar si no son null, undefined, 0, o string vacío
+            if (value !== null && value !== undefined && value !== 0 && value !== '' && !Array.isArray(value)) {
                 return count + 1;
             }
             return count;
@@ -198,13 +199,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
         if (section.type === 'single-horizontal') {
             return (
                 <FlatList
-                    data={item}
-                    keyExtractor={(year) => (year === null ? 'all-years' : year.toString())}
+                    data={item.filter((year: any) => year !== null)}
+                    keyExtractor={(year) => year.toString()}
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     renderItem={({ item: year }) => {
                         const isSelected = localFilters[section.id] === year;
-                        const label = year === null ? 'Todos' : year.toString();
+                        const label = year.toString();
 
                         return (
                             <TouchableOpacity

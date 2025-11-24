@@ -1,16 +1,17 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // NOTE: Update this to include the paths to all files that contain Nativewind classes.
+  darkMode: 'class',
+  
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
       colors: {
-        'background': '#F4F3EE',
-        'text-dark': '#463F3A',
-        'text-light': '#8A817C',
-        'primary': '#BCB8B1',
-        'accent': '#E0AFA0',
+        'background': 'var(--color-background)',
+        'text-dark': 'var(--color-text-dark)',
+        'text-light': 'var(--color-text-light)',
+        'primary': 'var(--color-primary)',
+        'accent': 'var(--color-accent)',
       },
       fontFamily: {
         'lora': ['Lora_600SemiBold'],

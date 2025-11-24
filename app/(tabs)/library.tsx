@@ -113,7 +113,10 @@ const Library = () => {
     
     // El Layout Principal con TabView
     return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView 
+        className="flex-1 bg-background"
+        edges={['top', 'left', 'right']}
+    >
         <Text className="text-3xl font-lora text-text-dark text-center mt-5 mb-5">
             Biblioteca
         </Text>

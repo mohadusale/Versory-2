@@ -7,8 +7,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from 'react';
-import { LogBox } from 'react-native';
+import { LogBox, useColorScheme } from 'react-native';
 import "./global.css";
+import { useColorScheme as useNativeWindColorScheme } from 'nativewind';
 
 // Suprimir warnings específicos de SplashScreen
 const originalConsoleError = console.error;
@@ -33,6 +34,18 @@ if (__DEV__) {
 }
 
 export default function RootLayout() {
+  // Detectar el tema del sistema
+  const systemColorScheme = useColorScheme();
+  const { setColorScheme } = useNativeWindColorScheme();
+
+  useEffect(() => {
+    if (systemColorScheme) {
+      setColorScheme(systemColorScheme);
+    } else {
+      setColorScheme('light');
+    }
+  }, [systemColorScheme]);
+
   // Crear una instancia de QueryClient (solo una vez)
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
@@ -58,6 +71,13 @@ export default function RootLayout() {
   
   // Activar sistema de refresh automático
   useTokenRefresh();
+
+  // Sincronizar el tema del sistema con NativeWind
+  useEffect(() => {
+    if (systemColorScheme) {
+      setColorScheme(systemColorScheme);
+    }
+  }, [systemColorScheme]);
 
   useEffect(() => {
     if (fontError) throw fontError;

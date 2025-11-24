@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        /* LIGHT MODE (Current Values) */
+        --color-background: #F4F3EE;
+        --color-text-dark: #463F3A;
+        --color-text-light: #8A817C;
+        --color-primary: #BCB8B1;
+        --color-accent: #E0AFA0;
+    }
+
+    .dark {
+        /* DARK MODE (Strictly use these values) */
+        --color-background: #1C1917;
+        --color-text-dark: #F4F3EE;
+        --color-text-light: #A8A29E;
+        --color-primary: #57534E;
+        --color-accent: #E0AFA0;
+    }
+}

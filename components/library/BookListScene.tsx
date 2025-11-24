@@ -225,7 +225,8 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
             if (Array.isArray(value) && value.length > 0) {
                 return count + value.length;
             }
-            if (value !== null && !Array.isArray(value)) {
+            // Para valores no-array, solo contar si no son null, undefined, 0, o string vacío
+            if (value !== null && value !== undefined && value !== 0 && value !== '' && !Array.isArray(value)) {
                 return count + 1;
             }
             return count;
@@ -356,9 +357,10 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
                         )}
                         numColumns={4}
                         contentContainerStyle={{
-                            paddingBottom: 80,
                             paddingTop: 8,
-                            paddingHorizontal: 4
+                            paddingHorizontal: 4,
+                            paddingBottom: 20,
+                            flexGrow: 1
                         }}
                         keyboardShouldPersistTaps="handled"
                         refreshControl={
