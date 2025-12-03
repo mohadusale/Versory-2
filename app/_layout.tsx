@@ -7,24 +7,59 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from 'react';
-import { LogBox } from 'react-native';
+import { LogBox, ErrorUtils } from 'react-native';
 import "./global.css";
 
-// Suprimir warnings específicos de SplashScreen
+// Suprimir warnings específicos de SplashScreen y LogBox
+LogBox.ignoreLogs([
+  'No native splash screen',
+  'Uncaught (in promise, id: 0) Error: No native splash screen',
+]);
+
+// Suprimir también en console.error
 const originalConsoleError = console.error;
 console.error = (...args) => {
   const errorString = args.join(' ');
   if (
     errorString.includes('No native splash screen') ||
-    errorString.includes('Uncaught (in promise, id:')
+    errorString.includes('Uncaught (in promise')
   ) {
     return; // Silenciar estos errores específicos
   }
   originalConsoleError(...args); // Mostrar otros errores normalmente
 };
 
+// Suprimir warnings en console.warn también
+const originalConsoleWarn = console.warn;
+console.warn = (...args) => {
+  const warnString = args.join(' ');
+  if (
+    warnString.includes('No native splash screen') ||
+    warnString.includes('SplashScreen')
+  ) {
+    return;
+  }
+  originalConsoleWarn(...args);
+};
+
 SplashScreen.preventAutoHideAsync().catch(() => {
   // Ignore error if splash screen already hidden
+});
+
+// Manejador global de errores no capturados
+const originalErrorHandler = ErrorUtils.getGlobalHandler();
+ErrorUtils.setGlobalHandler((error, isFatal) => {
+  const errorString = error?.message || '';
+  if (
+    errorString.includes('No native splash screen') ||
+    errorString.includes('SplashScreen')
+  ) {
+    return; // Ignorar errores de splash screen
+  }
+  // Llamar al manejador original para otros errores
+  if (originalErrorHandler) {
+    originalErrorHandler(error, isFatal);
+  }
 });
 
 // Imprimir configuración en desarrollo

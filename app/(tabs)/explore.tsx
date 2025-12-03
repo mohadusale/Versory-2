@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
     ActivityIndicator, 
     FlatList, 
@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiSearchBook, apiSearchBooks, SearchBookResult } from '@/lib/api';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useLibrary } from '@/hooks/useLibrary';
 
 const Explore = () => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -21,6 +22,25 @@ const Explore = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
     const handleError = useErrorHandler({ title: 'Error de Búsqueda' });
+    
+    // Obtener biblioteca del usuario para marcar libros que ya tiene
+    const { readingBooks, toReadBooks, finishedBooks } = useLibrary();
+    
+    // Crear un Set de ISBNs de todos los libros en la biblioteca para búsqueda rápida
+    const libraryISBNs = useMemo(() => {
+        const allBooks = [...readingBooks, ...toReadBooks, ...finishedBooks];
+        return new Set(allBooks.map(userBook => userBook.book.isbn));
+    }, [readingBooks, toReadBooks, finishedBooks]);
+    
+    // Crear un Map para obtener rápidamente el ID del UserBook por ISBN
+    const libraryBooksMap = useMemo(() => {
+        const allBooks = [...readingBooks, ...toReadBooks, ...finishedBooks];
+        const map = new Map();
+        allBooks.forEach(userBook => {
+            map.set(userBook.book.isbn, userBook.id);
+        });
+        return map;
+    }, [readingBooks, toReadBooks, finishedBooks]);
 
     const handleSearch = async () => {
         if (searchQuery.trim().length < 1) {
@@ -54,8 +74,16 @@ const Explore = () => {
             // Mostrar que está cargando
             setIsSearching(true);
             
-            // Siempre llamar a search-isbn para asegurar que el libro está en BD
-            // (Si ya existe, el backend lo devuelve directamente)
+            // Verificar si el libro ya está en la biblioteca del usuario
+            const userBookId = libraryBooksMap.get(book.isbn);
+            
+            if (userBookId) {
+                // Si ya está en la biblioteca, navegar directamente a la pantalla del libro
+                router.push(`/(stack)/books/${userBookId}`);
+                return;
+            }
+            
+            // Si NO está en la biblioteca, asegurar que el libro existe en BD
             const result = await apiSearchBook(book.isbn);
             
             if (result.status === 'not_found') {
@@ -63,7 +91,7 @@ const Explore = () => {
                 return;
             }
             
-            // Navegar a la vista previa del libro
+            // Navegar a la vista previa del libro (para agregarlo)
             router.push(`/(stack)/books/${book.isbn}?preview=true`);
         } catch (error: any) {
             handleError(error);
@@ -91,6 +119,9 @@ const Explore = () => {
             }
         }
 
+        // Verificar si el libro ya está en la biblioteca
+        const isInLibrary = libraryISBNs.has(item.isbn);
+
         return (
             <TouchableOpacity 
                 className="flex-row bg-background-light rounded-lg p-4 mb-3 shadow-sm"
@@ -114,18 +145,28 @@ const Explore = () => {
 
                 {/* Información */}
                 <View className="flex-1 justify-center">
-                    <Text 
-                        className="font-montserratSemiBold text-base text-text-dark mb-1.5"
-                        numberOfLines={2}
-                    >
-                        {item.title}
-                    </Text>
+                    <View className="flex-row items-center mb-1.5">
+                        <Text 
+                            className="font-montserratSemiBold text-base text-text-dark flex-1"
+                            numberOfLines={2}
+                        >
+                            {item.title}
+                        </Text>
+                    </View>
                     <Text 
                         className="font-montserrat text-sm text-text-light"
                         numberOfLines={1}
                     >
                         {authors}
                     </Text>
+                    {isInLibrary && (
+                        <View className="flex-row items-center mt-1.5">
+                            <Ionicons name="checkmark-circle" size={14} color="#4C956C" />
+                            <Text className="font-montserrat text-xs ml-1" style={{ color: '#4C956C' }}>
+                                En tu biblioteca
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Icono de flecha */}
