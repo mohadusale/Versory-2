@@ -122,3 +122,25 @@ export const apiCreateReview = async (statusId: number, review: string): Promise
     const response = await api.post(`/status/${statusId}/review/`, { review });
     return response.data;
 };
+
+// --- GAMIFICACIÓN ---
+
+export interface GamificationStats {
+    streak: number;
+    yearly_challenge: {
+        read: number;
+        goal: number;
+        year: number;
+    };
+    activity_dates: string[]; // Lista de fechas YYYY-MM-DD
+}
+
+export const apiGetGamificationStats = async (): Promise<GamificationStats> => {
+    const response = await api.get<GamificationStats>('/gamification/stats/');
+    return response.data;
+};
+
+export const apiUpdateReadingGoal = async (goal: number): Promise<{ success: boolean; new_goal: number }> => {
+    const response = await api.patch('/gamification/goal/', { goal });
+    return response.data;
+};

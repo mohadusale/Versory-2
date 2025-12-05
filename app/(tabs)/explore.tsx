@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router'; // <--- IMPORTACIÓN MODIFICADA
+import React, { useMemo, useState, useEffect } from 'react'; // <--- IMPORTACIÓN MODIFICADA
 import { 
     ActivityIndicator, 
     FlatList, 
@@ -18,6 +18,9 @@ import { useLibrary } from '@/hooks/useLibrary';
 import BarcodeScanner from '@/components/common/BarcodeScanner';
 
 const Explore = () => {
+    // 1. Recogemos los parámetros de la navegación
+    const params = useLocalSearchParams<{ action?: string }>();
+    
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<SearchBookResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -25,16 +28,25 @@ const Explore = () => {
     const [showScanner, setShowScanner] = useState(false);
     const handleError = useErrorHandler({ title: 'Error de Búsqueda' });
     
-    // Obtener biblioteca del usuario para marcar libros que ya tiene
+    // 2. Efecto para abrir el escáner si se solicita vía parámetros
+    useEffect(() => {
+        if (params.action === 'scan') {
+            setShowScanner(true);
+            // Limpiamos el parámetro para que no se vuelva a abrir si navegamos adelante/atrás
+            router.setParams({ action: '' });
+        }
+    }, [params.action]);
+
+    // ... (El resto del código se mantiene EXACTAMENTE igual que lo tenías) ...
+    // Copia desde aquí hacia abajo el resto de tu lógica original:
+    
     const { readingBooks, toReadBooks, finishedBooks } = useLibrary();
     
-    // Crear un Set de ISBNs de todos los libros en la biblioteca para búsqueda rápida
     const libraryISBNs = useMemo(() => {
         const allBooks = [...readingBooks, ...toReadBooks, ...finishedBooks];
         return new Set(allBooks.map(userBook => userBook.book.isbn));
     }, [readingBooks, toReadBooks, finishedBooks]);
     
-    // Crear un Map para obtener rápidamente el ID del UserBook por ISBN
     const libraryBooksMap = useMemo(() => {
         const allBooks = [...readingBooks, ...toReadBooks, ...finishedBooks];
         const map = new Map();
@@ -73,19 +85,14 @@ const Explore = () => {
 
     const handleBookPress = async (book: SearchBookResult) => {
         try {
-            // Mostrar que está cargando
             setIsSearching(true);
-            
-            // Verificar si el libro ya está en la biblioteca del usuario
             const userBookId = libraryBooksMap.get(book.isbn);
             
             if (userBookId) {
-                // Si ya está en la biblioteca, navegar directamente a la pantalla del libro
                 router.push(`/(stack)/books/${userBookId}`);
                 return;
             }
             
-            // Si NO está en la biblioteca, asegurar que el libro existe en BD
             const result = await apiSearchBook(book.isbn);
             
             if (result.status === 'not_found') {
@@ -93,7 +100,6 @@ const Explore = () => {
                 return;
             }
             
-            // Navegar a la vista previa del libro (para agregarlo)
             router.push(`/(stack)/books/${book.isbn}?preview=true`);
         } catch (error: any) {
             handleError(error);
@@ -119,14 +125,11 @@ const Explore = () => {
             }
             
             if (result.data) {
-                // Verificar si el libro ya está en la biblioteca del usuario
                 const userBookId = libraryBooksMap.get(result.data.isbn);
                 
                 if (userBookId) {
-                    // Si ya está en la biblioteca, navegar directamente a la pantalla del libro
                     router.push(`/(stack)/books/${userBookId}`);
                 } else {
-                    // Si NO está en la biblioteca, navegar a la vista previa del libro (para agregarlo)
                     router.push(`/(stack)/books/${result.data.isbn}?preview=true`);
                 }
             }
@@ -142,7 +145,6 @@ const Explore = () => {
     };
 
     const renderBookItem = ({ item }: { item: SearchBookResult }) => {
-        // Procesar autores: puede venir como array de strings o array de objetos
         let authors = 'Autor desconocido';
         if (item.authors && item.authors.length > 0) {
             authors = item.authors
@@ -155,16 +157,14 @@ const Explore = () => {
             }
         }
 
-        // Verificar si el libro ya está en la biblioteca
         const isInLibrary = libraryISBNs.has(item.isbn);
 
         return (
             <TouchableOpacity 
-                className="flex-row bg-background-light rounded-lg p-4 mb-3 shadow-sm"
+                className="flex-row bg-white rounded-lg p-4 mb-3 shadow-sm border border-primary/10" 
                 onPress={() => handleBookPress(item)}
                 activeOpacity={0.7}
             >
-                {/* Portada */}
                 <View className="w-20 h-32 bg-primary/10 rounded-md mr-4 overflow-hidden">
                     {item.cover_url ? (
                         <Image 
@@ -179,11 +179,10 @@ const Explore = () => {
                     )}
                 </View>
 
-                {/* Información */}
                 <View className="flex-1 justify-center">
                     <View className="flex-row items-center mb-1.5">
                         <Text 
-                            className="font-montserratSemiBold text-base text-text-dark flex-1"
+                            className="font-montserrat-bold text-base text-text-dark flex-1"
                             numberOfLines={2}
                         >
                             {item.title}
@@ -205,7 +204,6 @@ const Explore = () => {
                     )}
                 </View>
 
-                {/* Icono de flecha */}
                 <View className="justify-center ml-2">
                     <Ionicons name="chevron-forward" size={22} color="#8A817C" />
                 </View>
@@ -220,7 +218,7 @@ const Explore = () => {
             return (
                 <View className="items-center justify-center py-12">
                     <Ionicons name="search-outline" size={64} color="#BCB8B1" />
-                    <Text className="font-montserratSemiBold text-lg text-text-dark mt-4">
+                    <Text className="font-montserrat-bold text-lg text-text-dark mt-4">
                         No se encontraron resultados
                     </Text>
                     <Text className="font-montserrat text-sm text-text-light mt-2 text-center px-8">
@@ -234,7 +232,7 @@ const Explore = () => {
             return (
                 <View className="items-center justify-center py-12">
                     <Ionicons name="compass-outline" size={64} color="#BCB8B1" />
-                    <Text className="font-montserratSemiBold text-lg text-text-dark mt-4">
+                    <Text className="font-montserrat-bold text-lg text-text-dark mt-4">
                         Descubre nuevos libros
                     </Text>
                     <Text className="font-montserrat text-sm text-text-light mt-2 text-center px-8">
@@ -249,15 +247,13 @@ const Explore = () => {
 
     return (
         <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-            {/* Header */}
             <View className="px-4 pt-4 pb-3 bg-background border-b border-primary/10 items-center">
                 <Text className="font-lora text-3xl text-text-dark mb-4">
                     Explorar
                 </Text>
 
-                {/* Barra de búsqueda */}
                 <View className="flex-row items-center gap-3">
-                    <View className="flex-1 flex-row items-center bg-background-light rounded-full px-5 py-4 border border-primary/20">
+                    <View className="flex-1 flex-row items-center bg-white rounded-full px-5 py-4 border border-primary/20 shadow-sm">
                         <Ionicons name="search-outline" size={22} color="#8A817C" />
                         <TextInput
                             className="flex-1 ml-3 font-montserrat text-base text-text-dark"
@@ -281,7 +277,6 @@ const Explore = () => {
                         )}
                     </View>
 
-                    {/* Botón de escaneo */}
                     <TouchableOpacity 
                         className="bg-accent rounded-full p-4 shadow-md"
                         onPress={handleScanPress}
@@ -292,7 +287,6 @@ const Explore = () => {
                 </View>
             </View>
 
-            {/* Resultados */}
             <View className="flex-1">
                 {isSearching && (
                     <View className="items-center justify-center py-12">
@@ -313,7 +307,6 @@ const Explore = () => {
                 />
             </View>
 
-            {/* Escáner de código de barras */}
             <BarcodeScanner
                 visible={showScanner}
                 onClose={handleScannerClose}
