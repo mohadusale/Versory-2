@@ -13,22 +13,18 @@ export const useTokenRefresh = () => {
     
     useEffect(() => {
         if (!token) {
-            console.log('[TokenManager] No token available, skipping auto-refresh');
             return;
         }
         
         // Verificar periódicamente si el token necesita refresh
         const interval = setInterval(async () => {
             if (isTokenExpiringSoon(token)) {
-                console.log('[TokenManager] Token expiring soon, refreshing...');
                 await refreshAccessToken();
             }
         }, ENV.TOKEN_REFRESH_INTERVAL);
         
-        console.log('[TokenManager] Auto-refresh enabled');
         
         return () => {
-            console.log('[TokenManager] Auto-refresh disabled');
             clearInterval(interval);
         };
     }, [token]);

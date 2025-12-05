@@ -109,7 +109,6 @@ const BookDetails = () => {
             // Navegar directamente al libro añadido en modo normal (sin preview)
             router.replace(`/(stack)/books/${userBook.id}`);
         } catch (error: any) {
-            console.error('Error añadiendo libro:', error);
             Alert.alert('Error', error.message || 'No se pudo añadir el libro a tu biblioteca');
             setIsAddingToLibrary(false);
         }
@@ -173,7 +172,6 @@ const BookDetails = () => {
             }
             setShowDatePicker(false);
         } catch (error) {
-            console.error('Error updating date:', error);
         }
     };
 

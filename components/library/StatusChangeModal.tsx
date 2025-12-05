@@ -86,9 +86,9 @@ const StatusChangeModal: React.FC<StatusChangeModalProps> = ({
                 animationType="fade"
                 onRequestClose={onCancel}
             >
-                <TouchableWithoutFeedback onPress={onCancel}>
+                <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); }}>
                     <View style={styles.overlay}>
-                        <TouchableWithoutFeedback onPress={() => {}}>
+                        <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); }}>
                             <View style={styles.modalContent}>
                         {/* Header con icono */}
                         <View style={styles.iconContainer}>
@@ -99,71 +99,77 @@ const StatusChangeModal: React.FC<StatusChangeModalProps> = ({
 
                         {/* CONTENIDO: Cambia según el estado */}
                         {targetStatus === 'RD' && (
-                            <View style={styles.content}>
-                                <Text style={styles.label}>Fecha de inicio</Text>
-                                <TouchableOpacity
-                                    style={styles.dateButton}
-                                    onPress={() => openDatePicker('start')}
-                                    activeOpacity={0.7}
-                                >
-                                    <Ionicons name="calendar" size={20} color="#463F3A" />
-                                    <Text style={styles.dateText}>
-                                        {startDate.toLocaleDateString('es-ES', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric',
-                                        })}
+                            <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); }}>
+                                <View style={styles.content}>
+                                    <Text style={styles.label}>Fecha de inicio</Text>
+                                    <TouchableOpacity
+                                        style={styles.dateButton}
+                                        onPress={() => openDatePicker('start')}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Ionicons name="calendar" size={20} color="#463F3A" />
+                                        <Text style={styles.dateText}>
+                                            {startDate.toLocaleDateString('es-ES', {
+                                                day: 'numeric',
+                                                month: 'long',
+                                                year: 'numeric',
+                                            })}
+                                        </Text>
+                                        <Ionicons name="chevron-down" size={20} color="#8A817C" />
+                                    </TouchableOpacity>
+                                    <Text style={styles.hint}>
+                                        Puedes cambiar esta fecha más tarde
                                     </Text>
-                                    <Ionicons name="chevron-down" size={20} color="#8A817C" />
-                                </TouchableOpacity>
-                                <Text style={styles.hint}>
-                                    Puedes cambiar esta fecha más tarde
-                                </Text>
 
-                                <View style={styles.divider} />
+                                    <View style={styles.divider} />
 
-                                <NumberPicker
-                                    value={pagesRead}
-                                    minValue={0}
-                                    maxValue={bookPagesCount}
-                                    onChange={setPagesRead}
-                                    label="¿Cuántas páginas has leído?"
-                                />
-                            </View>
+                                    <NumberPicker
+                                        value={pagesRead}
+                                        minValue={0}
+                                        maxValue={bookPagesCount}
+                                        onChange={setPagesRead}
+                                        label="¿Cuántas páginas has leído?"
+                                    />
+                                </View>
+                            </TouchableWithoutFeedback>
                         )}
 
                         {targetStatus === 'FN' && (
-                            <View style={styles.content}>
-                                <Text style={styles.label}>Fecha de finalización</Text>
-                                <TouchableOpacity
-                                    style={styles.dateButton}
-                                    onPress={() => openDatePicker('finish')}
-                                    activeOpacity={0.7}
-                                >
-                                    <Ionicons name="calendar" size={20} color="#463F3A" />
-                                    <Text style={styles.dateText}>
-                                        {finishedDate.toLocaleDateString('es-ES', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric',
-                                        })}
-                                    </Text>
-                                    <Ionicons name="chevron-down" size={20} color="#8A817C" />
-                                </TouchableOpacity>
+                            <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); }}>
+                                <View style={styles.content}>
+                                    <Text style={styles.label}>Fecha de finalización</Text>
+                                    <TouchableOpacity
+                                        style={styles.dateButton}
+                                        onPress={() => openDatePicker('finish')}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Ionicons name="calendar" size={20} color="#463F3A" />
+                                        <Text style={styles.dateText}>
+                                            {finishedDate.toLocaleDateString('es-ES', {
+                                                day: 'numeric',
+                                                month: 'long',
+                                                year: 'numeric',
+                                            })}
+                                        </Text>
+                                        <Ionicons name="chevron-down" size={20} color="#8A817C" />
+                                    </TouchableOpacity>
 
-                                <View style={styles.divider} />
+                                    <View style={styles.divider} />
 
-                                <Text style={styles.label}>¿Cómo lo calificarías?</Text>
-                                <StarRating rating={rating} onRate={setRating} size={36} showText />
-                            </View>
+                                    <Text style={styles.label}>¿Cómo lo calificarías?</Text>
+                                    <StarRating rating={rating} onRate={setRating} size={36} showText />
+                                </View>
+                            </TouchableWithoutFeedback>
                         )}
 
                         {targetStatus === 'TR' && (
-                            <View style={styles.content}>
-                                <Text style={styles.emptyMessage}>
-                                    El libro se moverá a "Por Leer"
-                                </Text>
-                            </View>
+                            <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); }}>
+                                <View style={styles.content}>
+                                    <Text style={styles.emptyMessage}>
+                                        El libro se moverá a "Por Leer"
+                                    </Text>
+                                </View>
+                            </TouchableWithoutFeedback>
                         )}
 
                         {/* Botones */}

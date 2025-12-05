@@ -101,15 +101,6 @@ export const ENV = {
 export const printConfig = () => {
   if (!__DEV__) return;
   
-  console.log('\n📋 ===== CONFIGURACIÓN DE LA APLICACIÓN =====');
-  console.log(`🌐 API URL: ${ENV.API_URL}`);
-  console.log(`🔧 Entorno: ${ENV.IS_DEV ? 'Desarrollo' : 'Producción'}`);
-  console.log(`⏱️  API Timeout: ${ENV.API_TIMEOUT}ms`);
-  console.log(`🔄 Token Refresh Interval: ${ENV.TOKEN_REFRESH_INTERVAL}ms`);
-  console.log(`⏳ Token Expiry Threshold: ${ENV.TOKEN_EXPIRY_THRESHOLD}s`);
-  console.log(`💾 Cache Stale Time: ${ENV.CACHE_STALE_TIME}ms`);
-  console.log(`🗑️  Cache GC Time: ${ENV.CACHE_GC_TIME}ms`);
-  console.log('===========================================\n');
 };
 
 // Validar configuración al importar este módulo
@@ -119,10 +110,9 @@ try {
   Object.values(ENV);
   
   if (__DEV__) {
-    console.log('✅ Variables de entorno validadas correctamente');
   }
 } catch (error) {
-  console.error('❌ Error al validar variables de entorno:', error);
+  // Error validating environment variables
   throw error;
 }
 

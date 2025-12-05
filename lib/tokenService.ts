@@ -28,7 +28,6 @@ export const decodeJWT = (token: string): { exp: number } | null => {
         );
         return JSON.parse(jsonPayload);
     } catch (error) {
-        console.error('[TokenService] Error decoding JWT:', error);
         return null;
     }
 };
@@ -68,7 +67,6 @@ export const isTokenExpired = (token: string): boolean => {
  */
 export const refreshAccessToken = async (refreshToken: string): Promise<{ access: string; refresh?: string } | null> => {
     if (!refreshToken) {
-        console.warn('[TokenService] No refresh token provided');
         return null;
     }
     
@@ -84,7 +82,6 @@ export const refreshAccessToken = async (refreshToken: string): Promise<{ access
             refresh: refresh || refreshToken // Usar el nuevo si viene, sino mantener el actual
         };
     } catch (error) {
-        console.error('[TokenService] Error refreshing token:', error);
         return null;
     }
 };

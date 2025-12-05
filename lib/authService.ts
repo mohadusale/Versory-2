@@ -9,7 +9,6 @@ export const refreshAccessToken = async (): Promise<boolean> => {
     const { refreshToken: currentRefreshToken, setTokens, logout } = useAuthStore.getState();
     
     if (!currentRefreshToken) {
-        console.warn('[AuthService] No refresh token available, logging out');
         logout();
         return false;
     }
@@ -18,7 +17,6 @@ export const refreshAccessToken = async (): Promise<boolean> => {
         const tokens = await refreshToken(currentRefreshToken);
         
         if (!tokens) {
-            console.warn('[AuthService] Token refresh failed, logging out');
             logout();
             return false;
         }
@@ -26,7 +24,6 @@ export const refreshAccessToken = async (): Promise<boolean> => {
         setTokens(tokens.access, tokens.refresh || currentRefreshToken);
         return true;
     } catch (error) {
-        console.error('[AuthService] Error refreshing token:', error);
         logout();
         return false;
     }

@@ -27,7 +27,6 @@ api.interceptors.request.use(
         return config;
     },
     (error) => {
-        console.error('[API] Request error:', error);
         return Promise.reject(error);
     }
 );
@@ -44,7 +43,6 @@ api.interceptors.response.use(
         if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
             originalRequest._retry = true;
             
-            console.log('[API] Token expired, attempting refresh...');
             
             // Intentar refrescar el token
             const refreshSuccess = await refreshAccessToken();
@@ -54,10 +52,8 @@ api.interceptors.response.use(
                 const newToken = useAuthStore.getState().token;
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
                 
-                console.log('[API] Token refreshed successfully, retrying request');
                 return api(originalRequest);
             } else {
-                console.warn('[API] Token refresh failed, user will be logged out');
             }
         }
         

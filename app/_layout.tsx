@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from 'react';
-import { LogBox, ErrorUtils } from 'react-native';
+import { LogBox } from 'react-native';
 import "./global.css";
 
 // Suprimir warnings específicos de SplashScreen y LogBox
@@ -44,22 +44,6 @@ console.warn = (...args) => {
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // Ignore error if splash screen already hidden
-});
-
-// Manejador global de errores no capturados
-const originalErrorHandler = ErrorUtils.getGlobalHandler();
-ErrorUtils.setGlobalHandler((error, isFatal) => {
-  const errorString = error?.message || '';
-  if (
-    errorString.includes('No native splash screen') ||
-    errorString.includes('SplashScreen')
-  ) {
-    return; // Ignorar errores de splash screen
-  }
-  // Llamar al manejador original para otros errores
-  if (originalErrorHandler) {
-    originalErrorHandler(error, isFatal);
-  }
 });
 
 // Imprimir configuración en desarrollo

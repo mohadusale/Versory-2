@@ -48,13 +48,9 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
     };
 
     const handleMoveToStatus = (status: BookStatus) => {
-        console.log('handleMoveToStatus called with:', status);
         if (!selectedBook) {
-            console.log('No selected book');
             return;
         }
-
-        console.log('Selected book:', selectedBook.book.title);
         setTargetStatus(status);
         setShowConfirmationModal(false); // Cerrar el modal de confirmación primero
         
@@ -66,8 +62,6 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
             setShowStatusModal(true);
         }
         
-        console.log('Modal should show now');
-        console.log('State after update - status:', status);
     };
 
     const handleDelete = async () => {
@@ -96,14 +90,11 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
     };
 
     const handleModalConfirm = async (data: { status: BookStatus; start_date?: string; finished_date?: string; rating?: number; pages_read?: number }) => {
-        console.log('handleModalConfirm called with:', data);
         try {
             await changeStatus(data);
-            console.log('Status changed successfully');
             setShowStatusModal(false);
             setSelectedBook(null);
         } catch (error) {
-            console.error('Error changing status:', error);
         }
     };
 
@@ -121,7 +112,6 @@ const BookListScene: React.FC<BookListSceneProps> = ({ books, isLoading, onRefre
             setShowSimpleConfirmModal(false);
             setSelectedBook(null);
         } catch (error) {
-            console.error('Error changing to TR:', error);
         }
     };
 

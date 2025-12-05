@@ -15,12 +15,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiSearchBook, apiSearchBooks, SearchBookResult } from '@/lib/api';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useLibrary } from '@/hooks/useLibrary';
+import BarcodeScanner from '@/components/common/BarcodeScanner';
 
 const Explore = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<SearchBookResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
+    const [showScanner, setShowScanner] = useState(false);
     const handleError = useErrorHandler({ title: 'Error de Búsqueda' });
     
     // Obtener biblioteca del usuario para marcar libros que ya tiene
@@ -101,8 +103,42 @@ const Explore = () => {
     };
 
     const handleScanPress = () => {
-        // TODO: Implementar escáner de código de barras
-        alert('Función de escaneo próximamente');
+        setShowScanner(true);
+    };
+
+    const handleBarcodeScanned = async (isbn: string) => {
+        setShowScanner(false);
+        setIsSearching(true);
+        
+        try {
+            const result = await apiSearchBook(isbn);
+            
+            if (result.status === 'not_found') {
+                alert('Libro no encontrado. El ISBN escaneado no está disponible en nuestras fuentes.');
+                return;
+            }
+            
+            if (result.data) {
+                // Verificar si el libro ya está en la biblioteca del usuario
+                const userBookId = libraryBooksMap.get(result.data.isbn);
+                
+                if (userBookId) {
+                    // Si ya está en la biblioteca, navegar directamente a la pantalla del libro
+                    router.push(`/(stack)/books/${userBookId}`);
+                } else {
+                    // Si NO está en la biblioteca, navegar a la vista previa del libro (para agregarlo)
+                    router.push(`/(stack)/books/${result.data.isbn}?preview=true`);
+                }
+            }
+        } catch (error: any) {
+            handleError(error);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleScannerClose = () => {
+        setShowScanner(false);
     };
 
     const renderBookItem = ({ item }: { item: SearchBookResult }) => {
@@ -276,6 +312,13 @@ const Explore = () => {
                     showsVerticalScrollIndicator={false}
                 />
             </View>
+
+            {/* Escáner de código de barras */}
+            <BarcodeScanner
+                visible={showScanner}
+                onClose={handleScannerClose}
+                onBarcodeScanned={handleBarcodeScanned}
+            />
         </SafeAreaView>
     );
 };
